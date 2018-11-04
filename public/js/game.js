@@ -99,7 +99,7 @@ function addOtherPlayers(self, playerInfo) {
 }
 
 function update() {
-  if (this.ship) {
+  if (this.ship) { 
     if (this.cursors.left.isDown) {
       this.ship.setAngularVelocity(-150);
     } else if (this.cursors.right.isDown) {
