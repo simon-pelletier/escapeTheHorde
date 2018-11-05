@@ -4,11 +4,11 @@ var config = {
   width: 800,
   height: 600,
   physics: {
-    default: 'arcade',
-    arcade: {
-      debug: false,
-      gravity: { y: 0 }
-    }
+      default: 'arcade',
+      arcade: {
+          gravity: { y: 1600 },
+          debug: false
+      }
   },
   scene: {
     preload: preload,
@@ -19,16 +19,44 @@ var config = {
 
 var game = new Phaser.Game(config);
 
+var player;
+var platforms;
+
+var jumpForce = 500;
+
+
 function preload() {
   this.load.image('ship', 'assets/spaceShips_001.png');
   this.load.image('otherPlayer', 'assets/enemyBlack5.png');
   this.load.image('star', 'assets/star_gold.png');
+  this.load.image('ground01', 'assets/ground01.png');
 }
 
 function create() {
   var self = this;
   this.socket = io();
   this.otherPlayers = this.physics.add.group();
+
+  //  The platforms group contains the ground and the 2 ledges we can jump on
+  platforms = this.physics.add.staticGroup();
+
+  //  Here we create the ground.
+  //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
+  //platforms.create(400, 568, 'ground01').setScale(2).refreshBody();
+
+  //  Now let's create some ledges
+  //platforms.create(600, 400, 'ground01');
+  //platforms.create(50, 250, 'ground01');
+  //platforms.create(750, 220, 'ground01');
+
+  var blocWidth = 50;
+
+  for (var i = 0; i < 50; i++){
+    platforms.create(i * blocWidth, 600, 'ground01');
+  }
+
+
+
   this.socket.on('currentPlayers', function (players) {
     Object.keys(players).forEach(function (id) {
       if (players[id].playerId === self.socket.id) {
@@ -41,6 +69,11 @@ function create() {
   this.socket.on('newPlayer', function (playerInfo) {
     addOtherPlayers(self, playerInfo);
   });
+
+
+//this.physics.add.collider(player, platforms);
+
+
   this.socket.on('disconnect', function (playerId) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       if (playerId === otherPlayer.playerId) {
@@ -73,22 +106,35 @@ function create() {
       this.socket.emit('starCollected');
     }, null, self);
   });
+
+
 }
 
 function addPlayer(self, playerInfo) {
+  //player = playerInfo;
+  /*player = self.ship = self.physics.add.image(playerInfo.x, playerInfo.y, 'ship').setOrigin(0.5, 0.5).setDisplaySize(53, 40);
+  player = self.physics.add.collider(player, platforms);*/
   self.ship = self.physics.add.image(playerInfo.x, playerInfo.y, 'ship').setOrigin(0.5, 0.5).setDisplaySize(53, 40);
+  //self.ship = self.physics.add.collider(self.ship, platforms);
+
+  //player = self.ship;
   if (playerInfo.team === 'blue') {
     self.ship.setTint(0x0000ff);
   } else {
     self.ship.setTint(0xff0000);
   }
-  self.ship.setDrag(100);
-  self.ship.setAngularDrag(100);
+  self.ship.setDrag(500);
+  //self.ship.setAngularDrag(100);
   self.ship.setMaxVelocity(200);
+  //self.physics.add.collider(self, platforms);
+
+
 }
 
 function addOtherPlayers(self, playerInfo) {
   const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'otherPlayer').setOrigin(0.5, 0.5).setDisplaySize(53, 40);
+  //otherPlayer  = self.physics.add.collider(self, platforms);
+  //self.otherPlayers  = self.physics.add.collider(otherPlayers, platforms);
   if (playerInfo.team === 'blue') {
     otherPlayer.setTint(0x0000ff);
   } else {
@@ -99,19 +145,20 @@ function addOtherPlayers(self, playerInfo) {
 }
 
 function update() {
-  if (this.ship) { 
+  if (this.ship) {
     if (this.cursors.left.isDown) {
-      this.ship.setAngularVelocity(-150);
+      this.ship.setVelocityX(-160);
     } else if (this.cursors.right.isDown) {
-      this.ship.setAngularVelocity(150);
+      this.ship.setVelocityX(160);
     } else {
       this.ship.setAngularVelocity(0);
     }
 
     if (this.cursors.up.isDown) {
-      this.physics.velocityFromRotation(this.ship.rotation + 1.5, 100, this.ship.body.acceleration);
+      this.ship.setVelocityY(-jumpForce);
+      /*this.physics.velocityFromRotation(this.ship.rotation + 1.5, 100, this.ship.body.acceleration);
     } else {
-      this.ship.setAcceleration(0);
+      this.ship.setAcceleration(0);*/
     }
 
     this.physics.world.wrap(this.ship, 5);
