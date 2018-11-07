@@ -11,16 +11,18 @@ var config = {
 
 var game = new Phaser.Game(config);
 var platforms;
+var player;
 
 var blocWidth = 50;
 var baseGroundLength = worldLength / blocWidth + 1;
 
 function preload() {
+  this.load.spritesheet('character', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
   this.load.image('ship', 'assets/spaceShips_001.png');
   this.load.image('otherPlayer', 'assets/enemyBlack5.png');
   this.load.image('star', 'assets/star_gold.png');
   this.load.image('ground01', 'assets/ground01.png');
-  this.load.spritesheet('dude', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
+
 }
 
 function create() {
@@ -44,20 +46,27 @@ function create() {
   }
 
   //PLATFORM GENERATION
+  for (var i = 20; i < 30; i++){
+    platforms.create(i * blocWidth, 300, 'ground01');
+  }
   for (var i = 10; i < 20; i++){
     platforms.create(i * blocWidth, 500, 'ground01');
   }
+
+
 
 
   // PLAYER CREATION
   this.socket.on('currentPlayers', function (players) {
     Object.keys(players).forEach(function (id) {
       if (players[id].playerId === self.socket.id) {
-        self.ship = self.physics.add.image(players[id].x, players[id].y, 'ship').setOrigin(0.5, 0.5).setDisplaySize(53, 40);
-        self.ship.setDrag(300);
-        self.ship.setCollideWorldBounds(true);
-        self.physics.add.collider(self.ship, platforms);
-        self.cameras.main.startFollow(self.ship, true, 0.05, 0.05, 0, 200);
+        self.character = self.physics.add.sprite(players[id].x, players[id].y, 'character').setOrigin(0, 0);//.setDisplaySize(53, 40);
+        self.character.setDrag(300);
+        self.character.setCollideWorldBounds(true);
+        self.physics.add.collider(self.character, platforms);
+        self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 200);
+
+
       } else {
         addOtherPlayers(self, players[id]);
       }
@@ -81,6 +90,26 @@ function create() {
         otherPlayer.setPosition(playerInfo.x, playerInfo.y);
       }
     });
+  });
+
+  this.anims.create({
+      key: 'left',
+      frames: this.anims.generateFrameNumbers('character', { start: 0, end: 3 }),
+      frameRate: 10,
+      repeat: -1
+  });
+
+  this.anims.create({
+      key: 'turn',
+      frames: [ { key: 'character', frame: 4 } ],
+      frameRate: 20
+  });
+
+  this.anims.create({
+      key: 'right',
+      frames: this.anims.generateFrameNumbers('character', { start: 5, end: 8 }),
+      frameRate: 10,
+      repeat: -1
   });
 
   this.cursors = this.input.keyboard.createCursorKeys();
@@ -110,26 +139,30 @@ function create() {
 }
 
 function addOtherPlayers(self, playerInfo) {
-  const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'otherPlayer').setOrigin(0.5, 0.5).setDisplaySize(53, 40);
+  const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'otherPlayer').setOrigin(0.5, 0.5);//.setDisplaySize(53, 40);
   otherPlayer.playerId = playerInfo.playerId;
   self.otherPlayers.add(otherPlayer);
 }
 
 function update() {
-  if (this.ship) {
+  if (this.character) {
     // LEFT
     if (this.cursors.left.isDown ) {
-      this.ship.setVelocityX( - 160 * speed);
+      this.character.setVelocityX( - 160 * speed);
+      this.character.anims.play('left', true);
+      //this.character.play('left', true);
     // RIGHT
     } else if (this.cursors.right.isDown ) {
-      this.ship.setVelocityX( 160 * speed);
+      this.character.setVelocityX( 160 * speed);
+      this.character.anims.play('right', true);
     } else {
-      this.ship.setVelocityX(0);
+      this.character.setVelocityX(0);
+      this.character.anims.play('turn');
       //this.ship.setAngularVelocity(0);
     }
     // UP
-    if (this.cursors.up.isDown && this.ship.body.touching.down) {
-      this.ship.setVelocityY( - jumpForce);
+    if (this.cursors.up.isDown && this.character.body.touching.down) {
+      this.character.setVelocityY( - jumpForce);
     }
 
     //this.physics.world.wrap(this.ship, 5);
@@ -147,7 +180,7 @@ function update() {
       y: this.ship.y,
       rotation: this.ship.rotation
     };*/
-    this.socket.emit('playerMovement', { x: this.ship.x, y: this.ship.y - 170, rotation: this.ship.rotation });
+    this.socket.emit('playerMovement', { x: this.character.x, y: this.character.y - 170, rotation: this.character.rotation });
   }
 
   //this.socket.emit('playerMovement', { x: this.otherPlayers.x, y: this.otherPlayers.y, rotation: this.otherPlayers.rotation });
