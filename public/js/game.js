@@ -1,12 +1,11 @@
 var config = {
   type: Phaser.AUTO,
-  parent: 'phaser-example',
   width: 800,
   height: 600,
   physics: {
       default: 'arcade',
       arcade: {
-          gravity: { y: 1600 },
+          gravity: { y: 950 },
           debug: false
       }
   },
@@ -89,12 +88,13 @@ function create() {
       }
     });
   });
+
   this.cursors = this.input.keyboard.createCursorKeys();
 
-  this.blueScoreText = this.add.text(16, 16, '', { fontSize: '32px', fill: '#0000FF' });
-  this.redScoreText = this.add.text(584, 16, '', { fontSize: '32px', fill: '#FF0000' });
+  //this.blueScoreText = this.add.text(16, 16, '', { fontSize: '32px', fill: '#0000FF' });
+  //this.redScoreText = this.add.text(584, 16, '', { fontSize: '32px', fill: '#FF0000' });
 
-  this.socket.on('scoreUpdate', function (scores) {
+  /*this.socket.on('scoreUpdate', function (scores) {
     self.blueScoreText.setText('Blue: ' + scores.blue);
     self.redScoreText.setText('Red: ' + scores.red);
   });
@@ -105,7 +105,7 @@ function create() {
     self.physics.add.overlap(self.ship, self.star, function () {
       this.socket.emit('starCollected');
     }, null, self);
-  });
+  });*/
 
 
 }
@@ -126,7 +126,8 @@ function addPlayer(self, playerInfo) {
   self.ship.setDrag(500);
   //self.ship.setAngularDrag(100);
   self.ship.setMaxVelocity(200);
-  //self.physics.add.collider(self, platforms);
+
+  self.physics.add.collider(self.ship, platforms);
 
 
 }
@@ -135,12 +136,13 @@ function addOtherPlayers(self, playerInfo) {
   const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'otherPlayer').setOrigin(0.5, 0.5).setDisplaySize(53, 40);
   //otherPlayer  = self.physics.add.collider(self, platforms);
   //self.otherPlayers  = self.physics.add.collider(otherPlayers, platforms);
-  if (playerInfo.team === 'blue') {
+  /*if (playerInfo.team === 'blue') {
     otherPlayer.setTint(0x0000ff);
   } else {
     otherPlayer.setTint(0xff0000);
-  }
+  }*/
   otherPlayer.playerId = playerInfo.playerId;
+  //self.otherPlayers.physics.add.collider(self.otherPlayers, platforms);
   self.otherPlayers.add(otherPlayer);
 }
 
@@ -161,7 +163,7 @@ function update() {
       this.ship.setAcceleration(0);*/
     }
 
-    this.physics.world.wrap(this.ship, 5);
+    //this.physics.world.wrap(this.ship, 5);
 
     // emit player movement
     var x = this.ship.x;
