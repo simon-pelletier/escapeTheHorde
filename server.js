@@ -55,6 +55,7 @@ io.on('connection', function (socket) {
     socket.broadcast.emit('playerMoved', players[socket.id]);
   });
 
+
   /*socket.on('starCollected', function () {
     if (players[socket.id].team === 'red') {
       scores.red += 10;
