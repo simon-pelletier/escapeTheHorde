@@ -29,10 +29,11 @@ var keyDash;
 var blocWidth = 50;
 var baseGroundLength = worldLength / blocWidth + 1;
 var isNotJumping = true;
+var isNotRunning = true;
 var timeText;
 
-var px;
-var py;
+var goToTheRight = true;
+var lookToTheRight = true;
 
 // PRELOADER
 function preload() {
@@ -122,19 +123,25 @@ function create() {
   // Player animation
   this.anims.create({
       key: 'walking',
-      frames: this.anims.generateFrameNumbers('character', { start: 11, end: 21 }),
+      frames: this.anims.generateFrameNumbers('character', { start: 0, end: 10 }),
+      frameRate: 12,
+      repeat: -1
+  });
+  this.anims.create({
+      key: 'running',
+      frames: this.anims.generateFrameNumbers('character', { start: 44, end: 51 }),
       frameRate: 12,
       repeat: -1
   });
   this.anims.create({
       key: 'idle',
-      frames: this.anims.generateFrameNumbers('character', { start: 22, end: 37 }), //22 36
+      frames: this.anims.generateFrameNumbers('character', { start: 11, end: 26 }), //22 36
       frameRate: 12,
       repeat: -1
   });
   this.anims.create({
       key: 'jumping',
-      frames: this.anims.generateFrameNumbers('character', { start: 38, end: 52 }),
+      frames: this.anims.generateFrameNumbers('character', { start: 27, end: 43 }),
       frameRate: 15,
       repeat: 0
   });
@@ -164,8 +171,12 @@ function create() {
     var slide = self.input.mousePointer.worldX - pointer.x;
     if (self.character.x > (pointer.x - 45 + slide)){
       self.character.flipX = true;
+      self.lookToTheRight = false;
+
     } else {
       self.character.flipX = false;
+      self.lookToTheRight = true;
+
     }
   });
 
@@ -182,6 +193,12 @@ function animComplete(animation, frame){
     //this.currentAnim = this.animKeyStack[this.animKeyStack.length - 1];
     //this.anims.play(this.currentAnim, true);
   }
+  /*if(animation.key === 'running'){
+    isNotRunning = true;
+    //this.animKeyStack.pop();
+    //this.currentAnim = this.animKeyStack[this.animKeyStack.length - 1];
+    //this.anims.play(this.currentAnim, true);
+  }*/
 
 }
 
@@ -198,7 +215,14 @@ function update(time, delta) {
 
   var self_player = this.character;
 
-
+  /*var slide = this.input.mousePointer.worldX - pointer.x;
+  if (self_player.x > (pointer.x - 45 + slide)){
+    self_player.flipX = true;
+    this.lookToTheRight = false;
+  } else {
+    self_player.flipX = false;
+    this.lookToTheRight = true;
+  }*/
 
   // Déplacement du player (self)
   if (this.character) {
@@ -207,14 +231,45 @@ function update(time, delta) {
     if (this.cursors.left.isDown || keyLeft.isDown) {
       this.character.setVelocityX( - 160 * speed);
       if (isNotJumping) {
-        this.character.anims.play('walking', true);
+        if (isNotRunning) {
+          if (this.lookToTheRight) {
+            this.character.anims.playReverse('walking', true);
+          } else {
+            this.character.anims.play('walking', true);
+          }
+        } else {
+          if (this.lookToTheRight) {
+            this.character.anims.playReverse('running', true);
+          } else {
+            this.character.anims.play('running', true);
+          }
+        }
+
       }
 
     // RIGHT
   } else if (this.cursors.right.isDown || keyRight.isDown) {
       this.character.setVelocityX( 160 * speed);
       if (isNotJumping) {
-        this.character.anims.play('walking', true);
+        if (isNotRunning) {
+
+          if (this.lookToTheRight) {
+            this.character.anims.play('walking', true);
+          } else {
+            this.character.anims.playReverse('walking', true);
+          }
+
+        } else {
+
+          if (this.lookToTheRight) {
+            this.character.anims.play('running', true);
+          } else {
+            this.character.anims.playReverse('running', true);
+          }
+
+        }
+
+
       }
 
 
@@ -227,14 +282,17 @@ function update(time, delta) {
       }
     }
 
-    // DASH
-    if (this.cursors.shift.isDown /*&& this.character.body.touching.down*/) {
+    // RUNNING
+    if (this.cursors.shift.isDown) {
+      isNotRunning = false;
       if (this.cursors.left.isDown || keyLeft.isDown) {
         this.character.setVelocityX(-400);
       }
       if (this.cursors.right.isDown || keyRight.isDown) {
         this.character.setVelocityX(400);
       }
+    } else {
+      isNotRunning = true;
     }
 
     // Envoi des mouvements joueur (self)
