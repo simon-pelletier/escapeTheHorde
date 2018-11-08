@@ -31,6 +31,9 @@ var baseGroundLength = worldLength / blocWidth + 1;
 var isNotJumping = true;
 var timeText;
 
+var px;
+var py;
+
 // PRELOADER
 function preload() {
   this.load.spritesheet('character', 'assets/player.png', { frameWidth: 90, frameHeight: 100 });
@@ -123,36 +126,22 @@ function create() {
       frameRate: 12,
       repeat: -1
   });
-  /*
-  this.anims.create({
-      key: 'left',
-      frames: this.anims.generateFrameNumbers('character', { start: 0, end: 10 }),
-      frameRate: 12,
-      repeat: -1
-  });*/
   this.anims.create({
       key: 'idle',
       frames: this.anims.generateFrameNumbers('character', { start: 22, end: 37 }), //22 36
       frameRate: 12,
       repeat: -1
   });
-  /*
   this.anims.create({
-      key: 'right',
-      frames: this.anims.generateFrameNumbers('character', { start: 11, end: 21 }),
-      frameRate: 12,
-      repeat: -1
-  });*/
-  var jumpAnim = this.anims.create({
       key: 'jumping',
       frames: this.anims.generateFrameNumbers('character', { start: 38, end: 52 }),
       frameRate: 15,
       repeat: 0
   });
 
-  var _anims = this.anims;
 
   // Configuration des touches
+  this.input.mouse.disableContextMenu();
   this.cursors = this.input.keyboard.createCursorKeys();
   keyLeft = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
   keyRight = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
@@ -165,17 +154,20 @@ function create() {
     if (self.character.body.touching.down) {
       self.character.setVelocityY( - jumpForce);
       isNotJumping = false;
-      //_anims.pauseAll();
-      //jumpAnim.resume();
-      //_anims.resumeAll();
-
-
       self.character.anims.play('jumping', true);
       self.character.on('animationcomplete', animComplete, this);
-
     }
   });
 
+  this.input.on('pointermove', function (pointer) {
+
+    var slide = self.input.mousePointer.worldX - pointer.x;
+    if (self.character.x > (pointer.x - 45 + slide)){
+      self.character.flipX = true;
+    } else {
+      self.character.flipX = false;
+    }
+  });
 
   // Position du canvas (html)
   resizeWindow();
@@ -207,14 +199,11 @@ function update(time, delta) {
 
   var self_player = this.character;
 
+
+
   // Déplacement du player (self)
   if (this.character) {
-    /*this.input.keyboard.on('keydown_SPACE', function (event) {
-      if (self_player.body.touching.down) {
-        self_player.setVelocityY( - jumpForce);
-        self_player.anims.play('jumping');
-      }
-    });*/
+
     // LEFT
     if (this.cursors.left.isDown || keyLeft.isDown) {
       this.character.setVelocityX( - 160 * speed);
@@ -251,6 +240,7 @@ function update(time, delta) {
 
     // Envoi des mouvements joueur (self)
     this.socket.emit('playerMovement', { x: this.character.x, y: this.character.y - 170, rotation: this.character.rotation });
+
 
     //this.physics.world.wrap(this.ship, 5);
 
