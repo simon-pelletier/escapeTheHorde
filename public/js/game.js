@@ -29,6 +29,7 @@ var keyDash;
 var blocWidth = 50;
 var baseGroundLength = worldLength / blocWidth + 1;
 var isNotJumping = true;
+var timeText;
 
 // PRELOADER
 function preload() {
@@ -44,6 +45,8 @@ function preload() {
 function create() {
   var self = this;
   this.socket = io();
+
+  timeText = this.add.text(100, 200);
 
   // Déclaration de groupes
   this.otherPlayers = this.physics.add.group();
@@ -115,23 +118,31 @@ function create() {
   // ANIMATIONS
   // Player animation
   this.anims.create({
+      key: 'walking',
+      frames: this.anims.generateFrameNumbers('character', { start: 11, end: 21 }),
+      frameRate: 12,
+      repeat: -1
+  });
+  /*
+  this.anims.create({
       key: 'left',
       frames: this.anims.generateFrameNumbers('character', { start: 0, end: 10 }),
       frameRate: 12,
       repeat: -1
-  });
+  });*/
   this.anims.create({
-      key: 'turn',
+      key: 'idle',
       frames: this.anims.generateFrameNumbers('character', { start: 22, end: 37 }), //22 36
       frameRate: 12,
       repeat: -1
   });
+  /*
   this.anims.create({
       key: 'right',
       frames: this.anims.generateFrameNumbers('character', { start: 11, end: 21 }),
       frameRate: 12,
       repeat: -1
-  });
+  });*/
   var jumpAnim = this.anims.create({
       key: 'jumping',
       frames: this.anims.generateFrameNumbers('character', { start: 38, end: 52 }),
@@ -191,9 +202,11 @@ function addOtherPlayers(self, playerInfo) {
 }
 
 // UPDATER
-function update() {
+function update(time, delta) {
+  timeText.setText('Time: ' + time.toFixed(0) + '\nDelta: ' + delta.toFixed(2));
 
-var self_player = this.character;
+  var self_player = this.character;
+
   // Déplacement du player (self)
   if (this.character) {
     /*this.input.keyboard.on('keydown_SPACE', function (event) {
@@ -206,14 +219,14 @@ var self_player = this.character;
     if (this.cursors.left.isDown || keyLeft.isDown) {
       this.character.setVelocityX( - 160 * speed);
       if (isNotJumping) {
-        this.character.anims.play('left', true);
+        this.character.anims.play('walking', true);
       }
 
     // RIGHT
   } else if (this.cursors.right.isDown || keyRight.isDown) {
       this.character.setVelocityX( 160 * speed);
       if (isNotJumping) {
-        this.character.anims.play('right', true);
+        this.character.anims.play('walking', true);
       }
 
 
@@ -222,7 +235,7 @@ var self_player = this.character;
       this.character.setVelocityX(0);
 
       if (isNotJumping) {
-        this.character.anims.play('turn', true);
+        this.character.anims.play('idle', true);
       }
     }
 
