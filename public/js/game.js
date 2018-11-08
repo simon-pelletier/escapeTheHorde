@@ -37,18 +37,88 @@ var lookToTheRight = true;
 
 // PRELOADER
 function preload() {
+  //this.load.json('jsonData', 'assets/data/map.json');
   this.load.spritesheet('character', 'assets/player.png', { frameWidth: 90, frameHeight: 100 });
   //this.load.image('ship', 'assets/spaceShips_001.png');
-  this.load.image('otherPlayer', 'assets/enemyBlack5.png');
+  //this.load.image('otherPlayer', 'assets/enemyBlack5.png');
   //this.load.image('star', 'assets/star_gold.png');
   this.load.image('ground01', 'assets/ground01.png');
   this.load.image('tree01', 'assets/tree01.png');
 }
 
+
+function seedCreation(){
+
+
+
+  var seed = [];
+  var level = []
+  var mapLevel = 1;
+  level.push(mapLevel);
+  seed.push(level);
+
+  var mapLevel = [];
+  for (var i = 0; i < 20; i++){
+    var treePositionX = randomNumber(0, 5000);
+    var tree = ['trees', treePositionX, 580, 'tree01'];
+    mapLevel.push(tree);
+  }
+
+  for (var i = 0; i < baseGroundLength; i++){
+    var platform = ['platforms', i * blocWidth, 700, 'ground01'];
+    mapLevel.push(platform);
+  }
+
+  seed.push(mapLevel);
+
+
+
+  var seedObj = Object.assign({}, seed);
+  console.log(seedObj);
+
+
+//LVL
+  //MAPLEVEL
+  //
+//MAP
+  //GROUP (trees - platform)
+  //POSITIONX
+  //POSITIONY
+  //NAME (tree01 - ground01)
+
+
+
+  // TREES GENERATION
+  /*var treeNumbers = randomNumber(10, 50);
+  for (var i = 0; i < 50; i++){
+    var treePositionX = randomNumber(0, 5000);
+    trees.create(treePositionX, 580, 'tree01');
+  }
+  //GROUND GENERATION
+  for (var i = 0; i < baseGroundLength; i++){
+    platforms.create(i * blocWidth, 700, 'ground01');
+  }
+  //PLATFORM GENERATION
+  for (var i = 20; i < 30; i++){
+    platforms.create(i * blocWidth, 300, 'ground01');
+  }
+  for (var i = 10; i < 20; i++){
+    platforms.create(i * blocWidth, 500, 'ground01');
+  }*/
+}
+seedCreation();
+
+
+function worldCreation(){
+  var map;
+}
+
 // LAUNCHER
 function create() {
+  //console.log(this.cache.json.get('jsonData'));
   var self = this;
   this.socket = io();
+
 
   timeText = this.add.text(100, 200);
 
@@ -166,18 +236,21 @@ function create() {
     }
   });
 
+
   this.input.on('pointermove', function (pointer) {
+    if (self.character) {
+      var slide = self.input.mousePointer.worldX - pointer.x;
+      if (self.character.x > (pointer.x - 45 + slide)){
+        self.character.flipX = true;
+        self.lookToTheRight = false;
 
-    var slide = self.input.mousePointer.worldX - pointer.x;
-    if (self.character.x > (pointer.x - 45 + slide)){
-      self.character.flipX = true;
-      self.lookToTheRight = false;
+      } else {
+        self.character.flipX = false;
+        self.lookToTheRight = true;
 
-    } else {
-      self.character.flipX = false;
-      self.lookToTheRight = true;
-
+      }
     }
+
   });
 
   // Position du canvas (html)
@@ -211,8 +284,16 @@ function addOtherPlayers(self, playerInfo) {
 
 // UPDATER
 function update(time, delta) {
-  timeText.setText('Time: ' + time.toFixed(0) + '\nDelta: ' + delta.toFixed(2));
-
+  timeText.setText(
+    'Time: ' + time.toFixed(0) +
+    '\nDelta: ' + delta.toFixed(2) +
+    '\nLevel: --' + 
+    '\nPlayerNumber : --' +
+    '\nHost: --' +
+    '\nPlayerName: --');
+  var slideCamera = this.cameras.main._scrollX;
+  timeText.x = slideCamera +100;
+  //console.log(slideCamera);
   var self_player = this.character;
 
   /*var slide = this.input.mousePointer.worldX - pointer.x;
