@@ -173,7 +173,6 @@ function update() {
     // DASH
     if (this.cursors.shift.isDown && this.character.body.touching.down) {
       if (this.cursors.left.isDown || keyLeft.isDown) {
-        console.log('haha');
         this.character.setVelocityX(-1000);
       }
       if (this.cursors.right.isDown || keyRight.isDown) {
