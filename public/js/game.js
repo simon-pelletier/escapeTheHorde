@@ -4,14 +4,24 @@ var worldLength = 5000;
 var gravityG = 2000;
 
 var config = {
-  type: Phaser.AUTO, width: 800, height: 600,
+  type: Phaser.AUTO, width: 1200, height: 600,
   physics: { default: 'arcade', arcade: { gravity: { y: gravityG }, debug: false } },
   scene: { preload: preload, create: create, update: update }
 };
 
 var game = new Phaser.Game(config);
 var platforms;
+var trees;
 var player;
+
+var isMaster = false;
+
+var keyLeft;
+var keyRight;
+var keyUp;
+var keyUpSpace;
+var keyDown;
+var keyDash;
 
 var blocWidth = 50;
 var baseGroundLength = worldLength / blocWidth + 1;
@@ -22,6 +32,7 @@ function preload() {
   this.load.image('otherPlayer', 'assets/enemyBlack5.png');
   this.load.image('star', 'assets/star_gold.png');
   this.load.image('ground01', 'assets/ground01.png');
+  this.load.image('tree01', 'assets/tree01.png');
 
 }
 
@@ -39,6 +50,15 @@ function create() {
   this.add.image(1920, 1080, 'star').setOrigin(0).setFlipX(true).setFlipY(true);*/
 
   platforms = this.physics.add.staticGroup();
+  trees = this.physics.add.staticGroup();
+
+  // ARBRE GENERATION
+  var treeNumbers = randomNumber(10, 50);
+
+  for (var i = 0; i < 50; i++){
+    var treePositionX = randomNumber(0, 5000);
+    trees.create(treePositionX, 580, 'tree01');
+  }
 
   //GROUND GENERATION
   for (var i = 0; i < baseGroundLength; i++){
@@ -52,6 +72,23 @@ function create() {
   for (var i = 10; i < 20; i++){
     platforms.create(i * blocWidth, 500, 'ground01');
   }
+
+  //isMaster = true;
+  //PLAYER PRINCIPAL
+  this.socket.on('currentPlayers', function (players) {
+    isMaster = true;
+    Object.keys(players).forEach(function (id) {
+
+      console.log(players);
+      if (players[1]){
+
+      } else {
+
+      }
+    });
+    console.log(isMaster);
+
+  });
 
 
 
@@ -114,6 +151,16 @@ function create() {
 
   this.cursors = this.input.keyboard.createCursorKeys();
 
+  keyLeft = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q);
+  keyRight = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+  keyUp = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+  keyDown = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+  keyUpSpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+
+  /*this.keyRight = this.input.keyboard.addKey(Phaser.KeyCode.D);
+  this.keyUp = this.input.keyboard.addKey(Phaser.KeyCode.W);
+  this.keyDown = this.input.keyboard.addKey(Phaser.KeyCode.S);*/
+
   //  this.cameras.main.startFollow(player, true, 0.05, 0.05);
 
   //this.blueScoreText = this.add.text(16, 16, '', { fontSize: '32px', fill: '#0000FF' });
@@ -135,24 +182,25 @@ function create() {
   //this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
   //this.cameras.main.startFollow(player);
 
-
+  resizeWindow();
 }
 
 function addOtherPlayers(self, playerInfo) {
-  const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'otherPlayer').setOrigin(0.5, 0.5);//.setDisplaySize(53, 40);
+  const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'character').setOrigin(0.5, 0.5);//.setDisplaySize(53, 40);
   otherPlayer.playerId = playerInfo.playerId;
   self.otherPlayers.add(otherPlayer);
 }
 
 function update() {
   if (this.character) {
+
     // LEFT
-    if (this.cursors.left.isDown ) {
+    if (this.cursors.left.isDown || keyLeft.isDown) {
       this.character.setVelocityX( - 160 * speed);
       this.character.anims.play('left', true);
       //this.character.play('left', true);
     // RIGHT
-    } else if (this.cursors.right.isDown ) {
+  } else if (this.cursors.right.isDown || keyRight.isDown) {
       this.character.setVelocityX( 160 * speed);
       this.character.anims.play('right', true);
     } else {
@@ -161,9 +209,21 @@ function update() {
       //this.ship.setAngularVelocity(0);
     }
     // UP
-    if (this.cursors.up.isDown && this.character.body.touching.down) {
+    if ((this.cursors.up.isDown || keyUp.isDown || keyUpSpace.isDown) && this.character.body.touching.down) {
       this.character.setVelocityY( - jumpForce);
     }
+
+    // DASH
+    if (this.cursors.shift.isDown && this.character.body.touching.down) {
+      //this.character.setVelocityY( - jumpForce);
+      if (this.cursors.left.isDown) {
+        this.character.setVelocityX( - 400);
+      }
+      if (this.cursors.right.isDown) {
+        this.character.setVelocityX( 400);
+      }
+    }
+
 
     //this.physics.world.wrap(this.ship, 5);
 
@@ -181,7 +241,22 @@ function update() {
       rotation: this.ship.rotation
     };*/
     this.socket.emit('playerMovement', { x: this.character.x, y: this.character.y - 170, rotation: this.character.rotation });
+    //resizeWindow();
   }
 
   //this.socket.emit('playerMovement', { x: this.otherPlayers.x, y: this.otherPlayers.y, rotation: this.otherPlayers.rotation });
 }
+
+function randomNumber(min,max) // min and max included
+  {
+      return Math.floor(Math.random()*(max-min+1)+min);
+  }
+
+function resizeWindow(){
+  var canvasElt = document.getElementsByTagName('canvas')[0];
+  heightG = window.innerHeight;
+  widthG = window.innerWidth;
+  canvasElt.style.left = (widthG / 2) - (1200/2) + 'px';
+  canvasElt.style.top = (heightG / 2) - (600/2) + 'px';
+}
+window.onresize = resizeWindow;
