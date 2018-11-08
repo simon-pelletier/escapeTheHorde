@@ -1,5 +1,5 @@
 // VARIABLES DE CONFIG
-var speed = 3;
+var speed = 1;
 var jumpForce = 1000;
 var worldLength = 5000;
 var gravityG = 2000;
@@ -28,13 +28,14 @@ var keyDash;
 // VARIABLES GRAPHIQUES
 var blocWidth = 50;
 var baseGroundLength = worldLength / blocWidth + 1;
+var isNotJumping = true;
 
 // PRELOADER
 function preload() {
-  this.load.spritesheet('character', 'assets/dude.png', { frameWidth: 32, frameHeight: 48 });
-  this.load.image('ship', 'assets/spaceShips_001.png');
+  this.load.spritesheet('character', 'assets/player.png', { frameWidth: 90, frameHeight: 100 });
+  //this.load.image('ship', 'assets/spaceShips_001.png');
   this.load.image('otherPlayer', 'assets/enemyBlack5.png');
-  this.load.image('star', 'assets/star_gold.png');
+  //this.load.image('star', 'assets/star_gold.png');
   this.load.image('ground01', 'assets/ground01.png');
   this.load.image('tree01', 'assets/tree01.png');
 }
@@ -81,7 +82,7 @@ function create() {
         self.character.setDrag(300);
         self.character.setCollideWorldBounds(true);
         self.physics.add.collider(self.character, platforms);
-        self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 200);
+        self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 100);
       } else {
         addOtherPlayers(self, players[id]);
       }
@@ -109,25 +110,36 @@ function create() {
     });
   });
 
+
+
   // ANIMATIONS
   // Player animation
   this.anims.create({
       key: 'left',
-      frames: this.anims.generateFrameNumbers('character', { start: 0, end: 3 }),
-      frameRate: 10,
+      frames: this.anims.generateFrameNumbers('character', { start: 0, end: 10 }),
+      frameRate: 12,
       repeat: -1
   });
   this.anims.create({
       key: 'turn',
-      frames: [ { key: 'character', frame: 4 } ],
-      frameRate: 20
+      frames: this.anims.generateFrameNumbers('character', { start: 22, end: 37 }), //22 36
+      frameRate: 12,
+      repeat: -1
   });
   this.anims.create({
       key: 'right',
-      frames: this.anims.generateFrameNumbers('character', { start: 5, end: 8 }),
-      frameRate: 10,
+      frames: this.anims.generateFrameNumbers('character', { start: 11, end: 21 }),
+      frameRate: 12,
       repeat: -1
   });
+  var jumpAnim = this.anims.create({
+      key: 'jumping',
+      frames: this.anims.generateFrameNumbers('character', { start: 38, end: 52 }),
+      frameRate: 15,
+      repeat: 0
+  });
+
+  var _anims = this.anims;
 
   // Configuration des touches
   this.cursors = this.input.keyboard.createCursorKeys();
@@ -137,46 +149,90 @@ function create() {
   keyDown = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
   keyUpSpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
+  // JUMP SPACE config
+  this.input.keyboard.on('keydown_SPACE', function (event) {
+    if (self.character.body.touching.down) {
+      self.character.setVelocityY( - jumpForce);
+      isNotJumping = false;
+      //_anims.pauseAll();
+      //jumpAnim.resume();
+      //_anims.resumeAll();
+
+
+      self.character.anims.play('jumping', true);
+      self.character.on('animationcomplete', animComplete, this);
+
+    }
+  });
+
+
   // Position du canvas (html)
   resizeWindow();
 }
 
+function animComplete(animation, frame){
+
+
+  if(animation.key === 'jumping'){
+    isNotJumping = true;
+    console.log('hum');
+    //this.animKeyStack.pop();
+    //this.currentAnim = this.animKeyStack[this.animKeyStack.length - 1];
+    //this.anims.play(this.currentAnim, true);
+  }
+
+}
+
 // Ajout d'autres nouveaux joueurs
 function addOtherPlayers(self, playerInfo) {
-  const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'character').setOrigin(0.5, 0.5);//.setDisplaySize(53, 40);
+  const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'character').setOrigin(0, 0);//.setDisplaySize(53, 40);
   otherPlayer.playerId = playerInfo.playerId;
   self.otherPlayers.add(otherPlayer);
 }
 
 // UPDATER
 function update() {
+
+var self_player = this.character;
   // Déplacement du player (self)
   if (this.character) {
+    /*this.input.keyboard.on('keydown_SPACE', function (event) {
+      if (self_player.body.touching.down) {
+        self_player.setVelocityY( - jumpForce);
+        self_player.anims.play('jumping');
+      }
+    });*/
     // LEFT
     if (this.cursors.left.isDown || keyLeft.isDown) {
       this.character.setVelocityX( - 160 * speed);
-      this.character.anims.play('left', true);
+      if (isNotJumping) {
+        this.character.anims.play('left', true);
+      }
+
     // RIGHT
   } else if (this.cursors.right.isDown || keyRight.isDown) {
       this.character.setVelocityX( 160 * speed);
-      this.character.anims.play('right', true);
+      if (isNotJumping) {
+        this.character.anims.play('right', true);
+      }
+
+
     // IDLE
     } else {
       this.character.setVelocityX(0);
-      this.character.anims.play('turn');
-    }
-    // UP
-    if ((this.cursors.up.isDown || keyUp.isDown || keyUpSpace.isDown) && this.character.body.touching.down) {
-      this.character.setVelocityY( - jumpForce);
+
+      if (isNotJumping) {
+        this.character.anims.play('turn', true);
+      }
     }
 
     // DASH
-    if (this.cursors.shift.isDown && this.character.body.touching.down) {
+    if (this.cursors.shift.isDown /*&& this.character.body.touching.down*/) {
       if (this.cursors.left.isDown || keyLeft.isDown) {
-        this.character.setVelocityX(-1000);
+        this.character.setVelocityX(-400);
       }
       if (this.cursors.right.isDown || keyRight.isDown) {
-        this.character.setVelocityX(1000);
+        this.character.setVelocityX(400);
       }
     }
 
