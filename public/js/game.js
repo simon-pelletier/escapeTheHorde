@@ -216,11 +216,13 @@ function update() {
     // DASH
     if (this.cursors.shift.isDown && this.character.body.touching.down) {
       //this.character.setVelocityY( - jumpForce);
-      if (this.cursors.left.isDown) {
-        this.character.setVelocityX( - 400);
+
+      if (this.cursors.left.isDown || keyLeft.isDown) {
+        console.log('haha');
+        this.character.setVelocityX(-1000);
       }
-      if (this.cursors.right.isDown) {
-        this.character.setVelocityX( 400);
+      if (this.cursors.right.isDown || keyRight.isDown) {
+        this.character.setVelocityX(1000);
       }
     }
 
