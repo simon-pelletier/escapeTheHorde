@@ -178,7 +178,6 @@ function animComplete(animation, frame){
 
   if(animation.key === 'jumping'){
     isNotJumping = true;
-    console.log('hum');
     //this.animKeyStack.pop();
     //this.currentAnim = this.animKeyStack[this.animKeyStack.length - 1];
     //this.anims.play(this.currentAnim, true);
