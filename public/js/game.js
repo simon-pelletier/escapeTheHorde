@@ -15,6 +15,7 @@ var config = {
 var game = new Phaser.Game(config);
 var platforms;
 var trees;
+var zombies;
 var player;
 
 // VARIABLES KEY BIND
@@ -39,6 +40,8 @@ var lookToTheRight = true;
 function preload() {
   //this.load.json('jsonData', 'assets/data/map.json');
   this.load.spritesheet('character', 'assets/player.png', { frameWidth: 90, frameHeight: 100 });
+  this.load.spritesheet('zombie01', 'assets/Z.png', { frameWidth: 90, frameHeight: 100 });
+  //this.load.image('zombie01', 'assets/ground01.png');
   //this.load.image('ship', 'assets/spaceShips_001.png');
   //this.load.image('otherPlayer', 'assets/enemyBlack5.png');
   //this.load.image('star', 'assets/star_gold.png');
@@ -127,6 +130,9 @@ function create() {
   platforms = this.physics.add.staticGroup();
   trees = this.physics.add.staticGroup();
 
+  //zombies = this.add.group();
+  zombies = this.physics.add.group();
+
   // Configuration Caméra
   this.cameras.main.setBounds(0, 0, worldLength, 1000);
   this.physics.world.setBounds(0, 0, worldLength, 1000);
@@ -150,6 +156,20 @@ function create() {
   for (var i = 10; i < 20; i++){
     platforms.create(i * blocWidth, 500, 'ground01');
   }
+
+  var zWalking = this.anims.create({
+      key: 'zwalking',
+      frames: this.anims.generateFrameNumbers('zombie01', { start: 21, end: 43 }),
+      frameRate: 15,
+      repeat: -1
+  });
+
+
+  this.physics.add.collider(zombies, platforms);
+  //this.add.sprite(600, 200, 'zombie01').play('zwalking');
+  zombies.create(600, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
+  zombies.create(800, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
+  zombies.create(900, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
 
   // Création d'un nouveau joueur (self)
   this.socket.on('currentPlayers', function (players) {
@@ -217,6 +237,8 @@ function create() {
   });
 
 
+
+
   // Configuration des touches
   this.input.mouse.disableContextMenu();
   this.cursors = this.input.keyboard.createCursorKeys();
@@ -255,6 +277,8 @@ function create() {
 
   // Position du canvas (html)
   resizeWindow();
+
+
 }
 
 function animComplete(animation, frame){
@@ -284,10 +308,34 @@ function addOtherPlayers(self, playerInfo) {
 
 // UPDATER
 function update(time, delta) {
+  var zombiesNumber = zombies.getChildren().length;
+  if (this.character) {
+    for (var z = 0; z < zombiesNumber; z++){
+      var range = (zombies.getChildren()[z].x - 45 ) - this.character.x;
+      if (range > 0 ) {
+        zombies.getChildren()[z].setVelocityX( - 35 * speed);
+        zombies.getChildren()[z].flipX = true;
+      } else {
+        zombies.getChildren()[z].setVelocityX( 35 * speed);
+        zombies.getChildren()[z].flipX = false;
+      }
+    }
+  }
+  //console.log(zombies.getChildren(1));
+
+
+
+
+    //zombies.getChildren(1).flipX = true;
+
+    //console.log(this.character.x);
+    //console.log(zombies.x);
+
+
   timeText.setText(
     'Time: ' + time.toFixed(0) +
     '\nDelta: ' + delta.toFixed(2) +
-    '\nLevel: --' + 
+    '\nLevel: --' +
     '\nPlayerNumber : --' +
     '\nHost: --' +
     '\nPlayerName: --');
