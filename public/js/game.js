@@ -35,6 +35,7 @@ var timeText;
 
 var goToTheRight = true;
 var lookToTheRight = true;
+var zombiesSpeed = [];
 
 // PRELOADER
 function preload() {
@@ -167,9 +168,14 @@ function create() {
 
   this.physics.add.collider(zombies, platforms);
   //this.add.sprite(600, 200, 'zombie01').play('zwalking');
-  zombies.create(600, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
-  zombies.create(800, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
-  zombies.create(900, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
+  for (var i = 0; i < 10; i++){
+    zombies.create(randomNumber(0,1000), 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
+    var speedOfThisZ = randomNumber(10, 60);
+    zombiesSpeed.push(speedOfThisZ);
+  }
+
+  //zombies.create(800, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
+  //zombies.create(900, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
 
   // Création d'un nouveau joueur (self)
   this.socket.on('currentPlayers', function (players) {
@@ -313,10 +319,10 @@ function update(time, delta) {
     for (var z = 0; z < zombiesNumber; z++){
       var range = (zombies.getChildren()[z].x - 45 ) - this.character.x;
       if (range > 0 ) {
-        zombies.getChildren()[z].setVelocityX( - 35 * speed);
+        zombies.getChildren()[z].setVelocityX( - self.zombiesSpeed[z] * speed);
         zombies.getChildren()[z].flipX = true;
       } else {
-        zombies.getChildren()[z].setVelocityX( 35 * speed);
+        zombies.getChildren()[z].setVelocityX( self.zombiesSpeed[z] * speed);
         zombies.getChildren()[z].flipX = false;
       }
     }
