@@ -3,6 +3,7 @@ var speed = 1;
 var jumpForce = 1000;
 var worldLength = 5000;
 var gravityG = 2000;
+var zombiesPop = 5;
 
 // CONFIGURATION PHASER
 var config = {
@@ -31,6 +32,7 @@ var blocWidth = 50;
 var baseGroundLength = worldLength / blocWidth + 1;
 var isNotJumping = true;
 var isNotRunning = true;
+var isAttacking = false;
 var timeText;
 
 var goToTheRight = true;
@@ -50,6 +52,10 @@ function preload() {
   this.load.image('tree01', 'assets/tree01.png');
   this.load.image('sight', 'assets/sight.png');
   this.load.image('bullet', 'assets/bullet.png');
+
+  this.load.audio('pistolshot', [
+        'assets/audio/pistolshot.wav'
+    ]);
 }
 
 
@@ -140,6 +146,8 @@ function create() {
   this.cameras.main.setBounds(0, 0, worldLength, 1000);
   this.physics.world.setBounds(0, 0, worldLength, 1000);
 
+  var pistolShot = this.sound.add('pistolshot');
+
   // Génération du monde
   // ARBRE GENERATION
   var treeNumbers = randomNumber(10, 50);
@@ -162,11 +170,33 @@ function create() {
 
   var zWalking = this.anims.create({
       key: 'zwalking',
-      frames: this.anims.generateFrameNumbers('zombie01', { start: 21, end: 43}),
+      frames: this.anims.generateFrameNumbers('zombie01', { start: 0, end: 24}),
       frameRate: 13,
       repeat: -1
   });
-
+  var zHited = this.anims.create({
+      key: 'zhited',
+      frames: this.anims.generateFrameNumbers('zombie01', { start: 25, end: 29}),
+      frameRate: 13,
+      repeat: 0
+  });
+  var zAttack = this.anims.create({
+      key: 'zattack',
+      frames: this.anims.generateFrameNumbers('zombie01', { start: 30, end: 47}),
+      frameRate: 13,
+      repeat: -1
+  });
+  var zDie = this.anims.create({
+      key: 'zdie',
+      frames: this.anims.generateFrameNumbers('zombie01', { start: 48, end: 69}),
+      frameRate: 13,
+      repeat: 0
+  });
+/*
+  25-29 hit
+  30-47 attack
+  47-69 die
+*/
   this.physics.add.collider(zombies, platforms);
 
   // Generation de Z
@@ -179,7 +209,7 @@ function create() {
        zombiesSpeed.push(speedOfThisZ);
        //zombiesLife.push(100);
         i++;
-        if (i < 20) {
+        if (i < zombiesPop) {
            myLoop();
         }
      }, randomNumber(200,1000))
@@ -202,6 +232,48 @@ function create() {
         self.character.setCollideWorldBounds(true);
         self.physics.add.collider(self.character, platforms);
         self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 100);
+
+
+
+
+        self.physics.add.collider(zombies, self.character, null, function(player, zombie){
+          //console.log('touché :p');
+          //zombie.disableBody(true, false);
+          //zombie.anims.play('zattack');
+          //console.log(target.life);
+          /*if (target.data.values.life > 0) {
+            target.data.values.life += -20;
+            if (target.data.values.life > 0) {
+              target.anims.play('zhited');
+              setTimeout(function() {
+                target.anims.play('zwalking');
+              }, 300);
+            }
+
+          }*/
+
+          //bullet.disableBody(true, true);
+          //console.log(target.data.values.life);
+          /*target.on('animationcomplete', function(){
+            target.anims.play('zwalking');
+          });*/
+
+
+
+            //target.anims.play('zwalking');
+        });
+
+
+
+
+
+
+
+
+
+
+
+
       } else {
         playersNumber++;
         addOtherPlayers(self, players[id]);
@@ -283,9 +355,9 @@ function create() {
   var BetweenPoints = Phaser.Math.Angle.BetweenPoints;
   var SetToAngle = Phaser.Geom.Line.SetToAngle;
   var velocityFromRotation = this.physics.velocityFromRotation;
-  var gfx = this.add.graphics().setDefaultStyles({ lineStyle: { width: 1, color: 0x26b5ff, alpha: 0.5 } });
+  //var gfx = this.add.graphics().setDefaultStyles({ lineStyle: { width: 1, color: 0x26b5ff, alpha: 0.5 } });
   var velocity = new Phaser.Math.Vector2();
-  var line = new Phaser.Geom.Line();
+  //var line = new Phaser.Geom.Line();
 
   var sight = this.add.image(0, 0, 'sight');
 
@@ -295,20 +367,64 @@ function create() {
   //this.physics.add.collider(bullet, zombies);
 
 
-
+  /*if (isAttacking == true) {
+    target.anims.play('zattack');
+  } else {
+    target.anims.play('zwalking');
+  }*/
 
 
   this.physics.add.collider(bullet, platforms);
   this.physics.add.collider(bullet, zombies, null, function(bullet, target){
     //console.log(target.life);
-    target.data.values.life += -20;
+    if (target.data.values.life > 0) {
+      target.data.values.life += -20;
+      if (target.data.values.life > 0) {
+        target.anims.play('zhited');
+        setTimeout(function() {
+          target.anims.play('zwalking');
+        }, 300);
+      }
+
+    }
+
     bullet.disableBody(true, true);
-    console.log(target.data.values.life);
+    //console.log(target.data.values.life);
+    /*target.on('animationcomplete', function(){
+      target.anims.play('zwalking');
+    });*/
+
     if (target.data.values.life <= 0) {
-      target.destroy();
+      /*target.on('animationcomplete', function(e, n, target){
+        //target.anims.play('zwalking');
+        //this.destroy();
+        console.log('ha');
+      });*/
+      //target.setVelocityX(0);
+      target.anims.play('zdie');
+      target.disableBody(false, false);
+      setTimeout(function() {
+        target.destroy();
+        //console.log('destroyed');
+      }, 1300);
+
+      //target.anims.play('zwalking');
     }
 
   });
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -347,9 +463,9 @@ function create() {
       var angle = BetweenPoints(characterPoint, pointer);
       //console.log(angle);
 
-      SetToAngle(line, self.character.x + 45, self.character.y + 40, angle, 150);
-      velocityFromRotation(angle, 3000, velocity);
-      gfx.clear().strokeLineShape(line);
+      //SetToAngle(line, self.character.x + 45, self.character.y + 40, angle, 150);
+      velocityFromRotation(angle, 2000, velocity);
+      //gfx.clear().strokeLineShape(line);
     }
   });
 
@@ -357,7 +473,11 @@ function create() {
   this.input.on('pointerup', function () {
         // Enable physics body and reset (at position), activate game object, show game object
         bullet.enableBody(true, self.character.x + 45, self.character.y + 40, true, true).setVelocity(velocity.x, velocity.y);
-
+        //bullet.disableBody(true, true);
+        setTimeout(function() {
+          bullet.disableBody(true, true);
+        }, 500);
+        pistolShot.play();
     }, this);
 
 
@@ -384,6 +504,7 @@ function animComplete(animation, frame){
 
 }
 
+
 // Ajout d'autres nouveaux joueurs
 function addOtherPlayers(self, playerInfo) {
   const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'character').setOrigin(0, 0);//.setDisplaySize(53, 40);
@@ -400,16 +521,57 @@ function update(time, delta) {
   if (this.character) {
     for (var z = 0; z < zombiesNumber; z++){
 
-      var range = (zombies.getChildren()[z].x - 45 ) - this.character.x;
+      var horizontalRange = (zombies.getChildren()[z].x - 45 ) - this.character.x;
       var verticalRange = (zombies.getChildren()[z].y - 45 ) - this.character.y;
-      if (range > 0 && Math.abs(verticalRange) < 80) {
-        zombies.getChildren()[z].setVelocityX( - self.zombiesSpeed[z] * speed);
 
-        zombies.getChildren()[z].flipX = true;
-      } else if (range < 0 && Math.abs(verticalRange) < 80){
-        zombies.getChildren()[z].setVelocityX( self.zombiesSpeed[z] * speed);
-        zombies.getChildren()[z].flipX = false;
+      // Si ils sont au même étage
+      if (Math.abs(verticalRange) < 80) {
+
+        if (horizontalRange > 45) {
+          //zombies.getChildren()[z].anims.play('zwalking');
+          zombies.getChildren()[z].setVelocityX( - self.zombiesSpeed[z] * speed);
+          zombies.getChildren()[z].flipX = true;
+        } else if (horizontalRange < -45){
+          //zombies.getChildren()[z].anims.play('zwalking');
+          zombies.getChildren()[z].setVelocityX( self.zombiesSpeed[z] * speed);
+          zombies.getChildren()[z].flipX = false;
+        }
+
+        /*if (Math.abs(horizontalRange ) < 45) {
+          //zombies.getChildren()[z].setVelocityX(0);
+          //isAttacking = true;
+          //zombies.getChildren()[z].anims.play('zattack');
+        } else {
+          //isAttacking = false;
+          if (horizontalRange > 45) {
+            //zombies.getChildren()[z].anims.play('zwalking');
+            zombies.getChildren()[z].setVelocityX( - self.zombiesSpeed[z] * speed);
+            zombies.getChildren()[z].flipX = true;
+          } else if (horizontalRange < -45){
+            //zombies.getChildren()[z].anims.play('zwalking');
+            zombies.getChildren()[z].setVelocityX( self.zombiesSpeed[z] * speed);
+            zombies.getChildren()[z].flipX = false;
+          }
+        }*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       } else {
+        isAttacking = false;
+        //zombies.getChildren()[z].anims.play('zwalking');
         //si  il n'est pas au même étage
         if ( self.zombiesSpeed[z] % 2 == 0 ) {
           zombies.getChildren()[z].setVelocityX( self.zombiesSpeed[z] * speed);
