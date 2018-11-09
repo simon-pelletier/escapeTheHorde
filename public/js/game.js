@@ -8,9 +8,32 @@ var zombiesPop = 5;
 // CONFIGURATION PHASER
 var config = {
   type: Phaser.AUTO, width: 1200, height: 600,
-  physics: { default: 'arcade', arcade: { gravity: { y: gravityG }, debug: false } },
-  scene: { preload: preload, create: create, update: update }
+  //physics: { default: 'arcade', arcade: { gravity: { y: gravityG }, debug: false } },
+  scene: { preload: preload, create: create, update: update, physics: {
+      arcade: {
+          debug: true,
+          gravity: { y: gravityG }
+      },
+      matter: {
+          debug: true,
+          gravity: { y: 0.5 }
+      }/*,
+      impact: {
+          gravity: 100,
+          //debug: true,
+          setBounds: {
+              x: 10,
+              y: 10,
+              width: 1200,
+              height: 600,
+              thickness: 32
+          },
+          maxVelocity: 500
+      }*/
+  }
+ }
 };
+
 
 // VARIABLES ELEMENTS
 var game = new Phaser.Game(config);
@@ -142,6 +165,7 @@ function create() {
   //zombies = this.add.group();
   zombies = this.physics.add.group();
 
+
   // Configuration Caméra
   this.cameras.main.setBounds(0, 0, worldLength, 1000);
   this.physics.world.setBounds(0, 0, worldLength, 1000);
@@ -205,6 +229,7 @@ function create() {
      setTimeout(function () {
        var speedOfThisZ = randomNumber(10, 60);
        var oneZ = zombies.create(800, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
+       oneZ.setSize(40, 80).setOffset(24, 18);
        oneZ.setData({ life: 100, level: 1})
        zombiesSpeed.push(speedOfThisZ);
        //zombiesLife.push(100);
@@ -228,6 +253,7 @@ function create() {
         }
         clientPlayerName = players[id].playerName;
         self.character = self.physics.add.sprite(players[id].x, players[id].y, 'character').setOrigin(0, 0);//.setDisplaySize(53, 40);
+        self.character.setSize(40, 80).setOffset(24, 18);
         self.character.setDrag(300);
         self.character.setCollideWorldBounds(true);
         self.physics.add.collider(self.character, platforms);
