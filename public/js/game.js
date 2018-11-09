@@ -36,6 +36,7 @@ var timeText;
 var goToTheRight = true;
 var lookToTheRight = true;
 var zombiesSpeed = [];
+//var zombiesLife = [];
 var playersNumber = 0;
 var clientPlayerName;
 var clientIsMaster = false;
@@ -47,6 +48,8 @@ function preload() {
   this.load.spritesheet('zombie01', 'assets/Z.png', { frameWidth: 90, frameHeight: 100 });
   this.load.image('ground01', 'assets/ground01.png');
   this.load.image('tree01', 'assets/tree01.png');
+  this.load.image('sight', 'assets/sight.png');
+  this.load.image('bullet', 'assets/bullet.png');
 }
 
 
@@ -118,19 +121,10 @@ function create() {
   var self = this;
   this.socket = io();
 
-  // Viseur
-  var BetweenPoints = Phaser.Math.Angle.BetweenPoints;
-  var SetToAngle = Phaser.Geom.Line.SetToAngle;
-  var velocityFromRotation = this.physics.velocityFromRotation;
-  var gfx = this.add.graphics().setDefaultStyles({ lineStyle: { width: 2, color: 0xffdd00, alpha: 0.2 } });
-  var velocity = new Phaser.Math.Vector2();
-  var line = new Phaser.Geom.Line();
-  /*console.log(pointer);
-  var angle = BetweenPoints(self.character, pointer);
-  SetToAngle(line, self.character.x + 45, self.character.y + 40, angle, 308);
-  velocityFromRotation(angle, 600, velocity);
-  gfx.clear().strokeLineShape(line);*/
 
+
+
+  this.input.setDefaultCursor('url(assets/point.cur), pointer');
 
   timeText = this.add.text(100, 200);
 
@@ -180,8 +174,10 @@ function create() {
   function myLoop () {
      setTimeout(function () {
        var speedOfThisZ = randomNumber(10, 60);
-       zombies.create(800, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
+       var oneZ = zombies.create(800, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
+       oneZ.setData({ life: 100, level: 1})
        zombiesSpeed.push(speedOfThisZ);
+       //zombiesLife.push(100);
         i++;
         if (i < 20) {
            myLoop();
@@ -282,10 +278,59 @@ function create() {
     }
   });
 
+
+  // Viseur
+  var BetweenPoints = Phaser.Math.Angle.BetweenPoints;
+  var SetToAngle = Phaser.Geom.Line.SetToAngle;
+  var velocityFromRotation = this.physics.velocityFromRotation;
+  var gfx = this.add.graphics().setDefaultStyles({ lineStyle: { width: 1, color: 0x26b5ff, alpha: 0.5 } });
+  var velocity = new Phaser.Math.Vector2();
+  var line = new Phaser.Geom.Line();
+
+  var sight = this.add.image(0, 0, 'sight');
+
+  var bullet = this.physics.add.image(0, 0, 'bullet');
+  bullet.disableBody(true, true);
+  bullet.setBounce(1, 1);
+  //this.physics.add.collider(bullet, zombies);
+
+
+
+
+
+  this.physics.add.collider(bullet, platforms);
+  this.physics.add.collider(bullet, zombies, null, function(bullet, target){
+    //console.log(target.life);
+    target.data.values.life += -20;
+    bullet.disableBody(true, true);
+    console.log(target.data.values.life);
+    if (target.data.values.life <= 0) {
+      target.destroy();
+    }
+
+  });
+
+
+
+
+
+
+  if (self.character) {
+    //var bullet = this.physics.add.image(self.character.x, self.character.y, 'tree01');
+    bullet.x = self.character.x + 45;
+    bullet.y = self.character.y + 40;
+  }
+
   // POINTER MOVEMENT
   this.input.on('pointermove', function (pointer) {
     if (self.character) {
+
       var slide = self.input.mousePointer.worldX - pointer.x;
+      var slideY = self.input.mousePointer.worldY - pointer.y;
+
+      sight.x = pointer.x + slide;
+      sight.y = pointer.y + slideY;
+
       if (self.character.x > (pointer.x - 45 + slide)){
         self.character.flipX = true;
         self.lookToTheRight = false;
@@ -293,8 +338,29 @@ function create() {
         self.character.flipX = false;
         self.lookToTheRight = true;
       }
+      //console.log(pointer);
+      //var angle = BetweenPoints(self.character, pointer);
+      var characterPoint = new Phaser.Geom.Point(self.character.x - slide + 45, self.character.y - slideY +40);
+      //console.log(characterPoint);
+      //characterPoint.x = self.character.x;
+      //characterPoint.y = self.character.y;
+      var angle = BetweenPoints(characterPoint, pointer);
+      //console.log(angle);
+
+      SetToAngle(line, self.character.x + 45, self.character.y + 40, angle, 150);
+      velocityFromRotation(angle, 3000, velocity);
+      gfx.clear().strokeLineShape(line);
     }
   });
+
+  // TIR POINTER
+  this.input.on('pointerup', function () {
+        // Enable physics body and reset (at position), activate game object, show game object
+        bullet.enableBody(true, self.character.x + 45, self.character.y + 40, true, true).setVelocity(velocity.x, velocity.y);
+
+    }, this);
+
+
 
   // Position du canvas (html)
   resizeWindow();
