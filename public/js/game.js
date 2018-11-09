@@ -318,12 +318,23 @@ function update(time, delta) {
   if (this.character) {
     for (var z = 0; z < zombiesNumber; z++){
       var range = (zombies.getChildren()[z].x - 45 ) - this.character.x;
-      if (range > 0 ) {
+      var verticalRange = (zombies.getChildren()[z].y - 45 ) - this.character.y;
+      if (range > 0 && Math.abs(verticalRange) < 80) {
         zombies.getChildren()[z].setVelocityX( - self.zombiesSpeed[z] * speed);
         zombies.getChildren()[z].flipX = true;
-      } else {
+      } else if (range < 0 && Math.abs(verticalRange) < 80){
         zombies.getChildren()[z].setVelocityX( self.zombiesSpeed[z] * speed);
         zombies.getChildren()[z].flipX = false;
+      } else {
+        //si  il n'est pas au même étage
+        if ( self.zombiesSpeed[z] % 2 == 0 ) {
+          zombies.getChildren()[z].setVelocityX( self.zombiesSpeed[z] * speed);
+          zombies.getChildren()[z].flipX = false;
+        } else {
+          zombies.getChildren()[z].setVelocityX( - self.zombiesSpeed[z] * speed);
+          zombies.getChildren()[z].flipX = true;
+        }
+
       }
     }
   }
