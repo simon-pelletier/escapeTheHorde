@@ -36,24 +36,21 @@ var timeText;
 var goToTheRight = true;
 var lookToTheRight = true;
 var zombiesSpeed = [];
+var playersNumber = 0;
+var clientPlayerName;
+var clientIsMaster = false;
 
 // PRELOADER
 function preload() {
   //this.load.json('jsonData', 'assets/data/map.json');
   this.load.spritesheet('character', 'assets/player.png', { frameWidth: 90, frameHeight: 100 });
   this.load.spritesheet('zombie01', 'assets/Z.png', { frameWidth: 90, frameHeight: 100 });
-  //this.load.image('zombie01', 'assets/ground01.png');
-  //this.load.image('ship', 'assets/spaceShips_001.png');
-  //this.load.image('otherPlayer', 'assets/enemyBlack5.png');
-  //this.load.image('star', 'assets/star_gold.png');
   this.load.image('ground01', 'assets/ground01.png');
   this.load.image('tree01', 'assets/tree01.png');
 }
 
 
 function seedCreation(){
-
-
 
   var seed = [];
   var level = []
@@ -74,8 +71,6 @@ function seedCreation(){
   }
 
   seed.push(mapLevel);
-
-
 
   var seedObj = Object.assign({}, seed);
   console.log(seedObj);
@@ -123,6 +118,19 @@ function create() {
   var self = this;
   this.socket = io();
 
+  // Viseur
+  var BetweenPoints = Phaser.Math.Angle.BetweenPoints;
+  var SetToAngle = Phaser.Geom.Line.SetToAngle;
+  var velocityFromRotation = this.physics.velocityFromRotation;
+  var gfx = this.add.graphics().setDefaultStyles({ lineStyle: { width: 2, color: 0xffdd00, alpha: 0.2 } });
+  var velocity = new Phaser.Math.Vector2();
+  var line = new Phaser.Geom.Line();
+  /*console.log(pointer);
+  var angle = BetweenPoints(self.character, pointer);
+  SetToAngle(line, self.character.x + 45, self.character.y + 40, angle, 308);
+  velocityFromRotation(angle, 600, velocity);
+  gfx.clear().strokeLineShape(line);*/
+
 
   timeText = this.add.text(100, 200);
 
@@ -160,45 +168,60 @@ function create() {
 
   var zWalking = this.anims.create({
       key: 'zwalking',
-      frames: this.anims.generateFrameNumbers('zombie01', { start: 21, end: 43 }),
-      frameRate: 15,
+      frames: this.anims.generateFrameNumbers('zombie01', { start: 21, end: 43}),
+      frameRate: 13,
       repeat: -1
   });
 
-
   this.physics.add.collider(zombies, platforms);
-  //this.add.sprite(600, 200, 'zombie01').play('zwalking');
-  for (var i = 0; i < 10; i++){
-    zombies.create(randomNumber(0,1000), 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
-    var speedOfThisZ = randomNumber(10, 60);
-    zombiesSpeed.push(speedOfThisZ);
-  }
 
-  //zombies.create(800, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
-  //zombies.create(900, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
+  // Generation de Z
+  var i = 0;
+  function myLoop () {
+     setTimeout(function () {
+       var speedOfThisZ = randomNumber(10, 60);
+       zombies.create(800, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
+       zombiesSpeed.push(speedOfThisZ);
+        i++;
+        if (i < 20) {
+           myLoop();
+        }
+     }, randomNumber(200,1000))
+  }
+  myLoop();
+
+
 
   // Création d'un nouveau joueur (self)
   this.socket.on('currentPlayers', function (players) {
     Object.keys(players).forEach(function (id) {
       if (players[id].playerId === self.socket.id) {
+        playersNumber++;
+        if (playersNumber == 1) {
+          clientIsMaster = true;
+        }
+        clientPlayerName = players[id].playerName;
         self.character = self.physics.add.sprite(players[id].x, players[id].y, 'character').setOrigin(0, 0);//.setDisplaySize(53, 40);
         self.character.setDrag(300);
         self.character.setCollideWorldBounds(true);
         self.physics.add.collider(self.character, platforms);
         self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 100);
       } else {
+        playersNumber++;
         addOtherPlayers(self, players[id]);
       }
     });
   });
   // Affichage d'un autre nouveau joueur
   this.socket.on('newPlayer', function (playerInfo) {
+    playersNumber++;
     addOtherPlayers(self, playerInfo);
   });
   // Deconnexion d'un joueur
   this.socket.on('disconnect', function (playerId) {
     self.otherPlayers.getChildren().forEach(function (otherPlayer) {
       if (playerId === otherPlayer.playerId) {
+        playersNumber--;
         otherPlayer.destroy();
       }
     });
@@ -212,8 +235,6 @@ function create() {
       }
     });
   });
-
-
 
   // ANIMATIONS
   // Player animation
@@ -242,9 +263,6 @@ function create() {
       repeat: 0
   });
 
-
-
-
   // Configuration des touches
   this.input.mouse.disableContextMenu();
   this.cursors = this.input.keyboard.createCursorKeys();
@@ -264,27 +282,22 @@ function create() {
     }
   });
 
-
+  // POINTER MOVEMENT
   this.input.on('pointermove', function (pointer) {
     if (self.character) {
       var slide = self.input.mousePointer.worldX - pointer.x;
       if (self.character.x > (pointer.x - 45 + slide)){
         self.character.flipX = true;
         self.lookToTheRight = false;
-
       } else {
         self.character.flipX = false;
         self.lookToTheRight = true;
-
       }
     }
-
   });
 
   // Position du canvas (html)
   resizeWindow();
-
-
 }
 
 function animComplete(animation, frame){
@@ -314,13 +327,18 @@ function addOtherPlayers(self, playerInfo) {
 
 // UPDATER
 function update(time, delta) {
+  var slideCamera = this.cameras.main._scrollX;
   var zombiesNumber = zombies.getChildren().length;
+
+
   if (this.character) {
     for (var z = 0; z < zombiesNumber; z++){
+
       var range = (zombies.getChildren()[z].x - 45 ) - this.character.x;
       var verticalRange = (zombies.getChildren()[z].y - 45 ) - this.character.y;
       if (range > 0 && Math.abs(verticalRange) < 80) {
         zombies.getChildren()[z].setVelocityX( - self.zombiesSpeed[z] * speed);
+
         zombies.getChildren()[z].flipX = true;
       } else if (range < 0 && Math.abs(verticalRange) < 80){
         zombies.getChildren()[z].setVelocityX( self.zombiesSpeed[z] * speed);
@@ -338,37 +356,18 @@ function update(time, delta) {
       }
     }
   }
-  //console.log(zombies.getChildren(1));
-
-
-
-
-    //zombies.getChildren(1).flipX = true;
-
-    //console.log(this.character.x);
-    //console.log(zombies.x);
-
 
   timeText.setText(
     'Time: ' + time.toFixed(0) +
     '\nDelta: ' + delta.toFixed(2) +
     '\nLevel: --' +
-    '\nPlayerNumber : --' +
-    '\nHost: --' +
-    '\nPlayerName: --');
-  var slideCamera = this.cameras.main._scrollX;
-  timeText.x = slideCamera +100;
-  //console.log(slideCamera);
-  var self_player = this.character;
+    '\nPlayers Number: ' + playersNumber +
+    '\nZombies Number: ' + zombiesNumber +
+    '\nMaster: ' + clientIsMaster +
+    '\nPlayer Name: ' + clientPlayerName);
 
-  /*var slide = this.input.mousePointer.worldX - pointer.x;
-  if (self_player.x > (pointer.x - 45 + slide)){
-    self_player.flipX = true;
-    this.lookToTheRight = false;
-  } else {
-    self_player.flipX = false;
-    this.lookToTheRight = true;
-  }*/
+  timeText.x = slideCamera +100;
+  var self_player = this.character;
 
   // Déplacement du player (self)
   if (this.character) {
