@@ -63,6 +63,8 @@ var lookToTheRight = true;
 var zombiesSpeed = [];
 //var zombiesLife = [];
 var playersNumber = 0;
+var clientPlayer;
+var clientPlayerLife;
 var clientPlayerName;
 var clientIsMaster = false;
 
@@ -150,12 +152,27 @@ function create() {
   var self = this;
   this.socket = io();
 
+  this.input.setDefaultCursor('url(assets/sight.cur), pointer');
 
-
-
-  this.input.setDefaultCursor('url(assets/point.cur), pointer');
+  //this.input.setDefaultCursor('url(assets/point.cur), pointer');
 
   timeText = this.add.text(100, 200);
+
+
+
+  var Bodies = Phaser.Physics.Matter.Matter.Bodies;
+
+    var rect = Bodies.rectangle(0, 0, 98, 98);
+    var circleA = Bodies.circle(-70, 0, 24, { isSensor: true, label: 'left' });
+    var circleB = Bodies.circle(70, 0, 24, { isSensor: true, label: 'right' });
+    var circleC = Bodies.circle(0, -70, 24, { isSensor: true, label: 'top' });
+    var circleD = Bodies.circle(0, 70, 24, { isSensor: true, label: 'bottom' });
+
+    var compoundBody = Phaser.Physics.Matter.Matter.Body.create({
+        parts: [ rect, circleA, circleB, circleC, circleD ]
+    });
+
+
 
   // Déclaration de groupes
   this.otherPlayers = this.physics.add.group();
@@ -222,6 +239,24 @@ function create() {
   47-69 die
 */
   this.physics.add.collider(zombies, platforms);
+  //this.physics.add.overlap(zombies, this.character);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   // Generation de Z
   var i = 0;
@@ -229,9 +264,20 @@ function create() {
      setTimeout(function () {
        var speedOfThisZ = randomNumber(10, 60);
        var oneZ = zombies.create(800, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
+       //oneZ.setExistingBody(compoundBody);
+//var block = this.matter.add.image(150, 0, 'block');
+
+
        oneZ.setSize(40, 80).setOffset(24, 18);
-       oneZ.setData({ life: 100, level: 1})
+       oneZ.setData({
+         life: 100,
+         level: 1,
+         speed: speedOfThisZ,
+         strength: randomNumber(5, 20),
+         armor: randomNumber(10, 20)
+       });
        zombiesSpeed.push(speedOfThisZ);
+       //oneZ.setExistingBody(compoundBody);
        //zombiesLife.push(100);
         i++;
         if (i < zombiesPop) {
@@ -243,7 +289,7 @@ function create() {
 
 
 
-  // Création d'un nouveau joueur (self)
+  // Création d'un nouveau joueur
   this.socket.on('currentPlayers', function (players) {
     Object.keys(players).forEach(function (id) {
       if (players[id].playerId === self.socket.id) {
@@ -251,18 +297,24 @@ function create() {
         if (playersNumber == 1) {
           clientIsMaster = true;
         }
+        clientPlayer = players[id];
+        clientPlayerLife = players[id].playerLife;
         clientPlayerName = players[id].playerName;
         self.character = self.physics.add.sprite(players[id].x, players[id].y, 'character').setOrigin(0, 0);//.setDisplaySize(53, 40);
         self.character.setSize(40, 80).setOffset(24, 18);
         self.character.setDrag(300);
         self.character.setCollideWorldBounds(true);
         self.physics.add.collider(self.character, platforms);
+        self.physics.add.overlap(self.character, zombies, zombiHitPlayer);
+        /*self.physics.add.overlap(self.character, zombies, function(){
+          console.log('hhh');
+        });*/
         self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 100);
 
 
 
 
-        self.physics.add.collider(zombies, self.character, null, function(player, zombie){
+        //self.physics.add.collider(zombies, self.character, null, function(player, zombie){
           //console.log('touché :p');
           //zombie.disableBody(true, false);
           //zombie.anims.play('zattack');
@@ -287,7 +339,7 @@ function create() {
 
 
             //target.anims.play('zwalking');
-        });
+        //});
 
 
 
@@ -400,11 +452,14 @@ function create() {
   }*/
 
 
-  this.physics.add.collider(bullet, platforms);
+  this.physics.add.collider(bullet, platforms, function(bullet, target){
+    bullet.disableBody(true, true);
+  });
   this.physics.add.collider(bullet, zombies, null, function(bullet, target){
     //console.log(target.life);
     if (target.data.values.life > 0) {
       target.data.values.life += -20;
+      console.log(bullet);
       if (target.data.values.life > 0) {
         target.anims.play('zhited');
         setTimeout(function() {
@@ -454,10 +509,12 @@ function create() {
 
 
 
-
-
-
   if (self.character) {
+    //this.physics.add.overlap(self.character, zombies);
+
+    /*this.physics.overlap(self.character, zombies, function(){
+      console.log('jjj');
+    });*/
     //var bullet = this.physics.add.image(self.character.x, self.character.y, 'tree01');
     bullet.x = self.character.x + 45;
     bullet.y = self.character.y + 40;
@@ -470,8 +527,8 @@ function create() {
       var slide = self.input.mousePointer.worldX - pointer.x;
       var slideY = self.input.mousePointer.worldY - pointer.y;
 
-      sight.x = pointer.x + slide;
-      sight.y = pointer.y + slideY;
+      //sight.x = pointer.x + slide;
+      //sight.y = pointer.y + slideY;
 
       if (self.character.x > (pointer.x - 45 + slide)){
         self.character.flipX = true;
@@ -500,9 +557,9 @@ function create() {
         // Enable physics body and reset (at position), activate game object, show game object
         bullet.enableBody(true, self.character.x + 45, self.character.y + 40, true, true).setVelocity(velocity.x, velocity.y);
         //bullet.disableBody(true, true);
-        setTimeout(function() {
+        /*setTimeout(function() {
           bullet.disableBody(true, true);
-        }, 500);
+        }, 1000);*/
         pistolShot.play();
     }, this);
 
@@ -538,13 +595,24 @@ function addOtherPlayers(self, playerInfo) {
   self.otherPlayers.add(otherPlayer);
 }
 
+function zombiHitPlayer(p, z){
+  console.log(p);
+  clientPlayer.playerLife--;
+  console.log(clientPlayer.playerLife);
+  if (clientPlayer.playerLife < 0) {
+    console.log('DEAD');
+  }
+}
+
 // UPDATER
 function update(time, delta) {
   var slideCamera = this.cameras.main._scrollX;
   var zombiesNumber = zombies.getChildren().length;
 
 
+
   if (this.character) {
+
     for (var z = 0; z < zombiesNumber; z++){
 
       var horizontalRange = (zombies.getChildren()[z].x - 45 ) - this.character.x;
@@ -716,18 +784,3 @@ function update(time, delta) {
 
   }
 }
-
-// Random Number
-function randomNumber(min,max){
-      return Math.floor(Math.random()*(max-min+1)+min);
-}
-
-// Resize window
-function resizeWindow(){
-  var canvasElt = document.getElementsByTagName('canvas')[0];
-  heightG = window.innerHeight;
-  widthG = window.innerWidth;
-  canvasElt.style.left = (widthG / 2) - (1200/2) + 'px';
-  canvasElt.style.top = (heightG / 2) - (600/2) + 'px';
-}
-window.onresize = resizeWindow;
