@@ -1,8 +1,8 @@
 // VARIABLES DE CONFIG
 var speed = 1;
-var jumpForce = 1000;
-var worldLength = 5000;
-var gravityG = 2000;
+var jumpForce = 10;
+var worldLength = 3000;
+var gravityG = 1;
 var zombiesPop = 5;
 
 // CONFIGURATION PHASER
@@ -10,36 +10,18 @@ var config = {
   type: Phaser.AUTO, width: 1200, height: 600,
   //physics: { default: 'arcade', arcade: { gravity: { y: gravityG }, debug: false } },
   scene: { preload: preload, create: create, update: update, physics: {
-      arcade: {
+      matter: {
           debug: true,
           gravity: { y: gravityG }
       },
-      matter: {
-          debug: true,
-          gravity: { y: 0.5 }
-      }/*,
-      impact: {
-          gravity: 100,
-          //debug: true,
-          setBounds: {
-              x: 10,
-              y: 10,
-              width: 1200,
-              height: 600,
-              thickness: 32
-          },
-          maxVelocity: 500
-      }*/
+      arcade: { gravity: { y: gravityG }, debug: false }
   }
  }
 };
 
-
 // VARIABLES ELEMENTS
 var game = new Phaser.Game(config);
-var platforms;
-var trees;
-var zombies;
+var zArray = [];
 var player;
 
 // VARIABLES KEY BIND
@@ -51,6 +33,7 @@ var keyDown;
 var keyDash;
 
 // VARIABLES GRAPHIQUES
+var background;
 var blocWidth = 50;
 var baseGroundLength = worldLength / blocWidth + 1;
 var isNotJumping = true;
@@ -60,8 +43,7 @@ var timeText;
 
 var goToTheRight = true;
 var lookToTheRight = true;
-var zombiesSpeed = [];
-//var zombiesLife = [];
+
 var playersNumber = 0;
 var clientPlayer;
 var clientPlayerLife;
@@ -74,76 +56,16 @@ function preload() {
   this.load.spritesheet('character', 'assets/player.png', { frameWidth: 90, frameHeight: 100 });
   this.load.spritesheet('zombie01', 'assets/Z.png', { frameWidth: 90, frameHeight: 100 });
   this.load.image('ground01', 'assets/ground01.png');
+  this.load.image('underground01', 'assets/underground01.png');
+  this.load.image('platform01', 'assets/platform01.png');
   this.load.image('tree01', 'assets/tree01.png');
-  this.load.image('sight', 'assets/sight.png');
   this.load.image('bullet', 'assets/bullet.png');
+  this.load.image('bg01', 'assets/bg01.jpg');
+
 
   this.load.audio('pistolshot', [
         'assets/audio/pistolshot.wav'
     ]);
-}
-
-
-function seedCreation(){
-
-  var seed = [];
-  var level = []
-  var mapLevel = 1;
-  level.push(mapLevel);
-  seed.push(level);
-
-  var mapLevel = [];
-  for (var i = 0; i < 20; i++){
-    var treePositionX = randomNumber(0, 5000);
-    var tree = ['trees', treePositionX, 580, 'tree01'];
-    mapLevel.push(tree);
-  }
-
-  for (var i = 0; i < baseGroundLength; i++){
-    var platform = ['platforms', i * blocWidth, 700, 'ground01'];
-    mapLevel.push(platform);
-  }
-
-  seed.push(mapLevel);
-
-  var seedObj = Object.assign({}, seed);
-  console.log(seedObj);
-
-
-//LVL
-  //MAPLEVEL
-  //
-//MAP
-  //GROUP (trees - platform)
-  //POSITIONX
-  //POSITIONY
-  //NAME (tree01 - ground01)
-
-
-
-  // TREES GENERATION
-  /*var treeNumbers = randomNumber(10, 50);
-  for (var i = 0; i < 50; i++){
-    var treePositionX = randomNumber(0, 5000);
-    trees.create(treePositionX, 580, 'tree01');
-  }
-  //GROUND GENERATION
-  for (var i = 0; i < baseGroundLength; i++){
-    platforms.create(i * blocWidth, 700, 'ground01');
-  }
-  //PLATFORM GENERATION
-  for (var i = 20; i < 30; i++){
-    platforms.create(i * blocWidth, 300, 'ground01');
-  }
-  for (var i = 10; i < 20; i++){
-    platforms.create(i * blocWidth, 500, 'ground01');
-  }*/
-}
-seedCreation();
-
-
-function worldCreation(){
-  var map;
 }
 
 // LAUNCHER
@@ -152,238 +74,86 @@ function create() {
   var self = this;
   this.socket = io();
 
+  background = this.add.image(0, 0, 'bg01');
+  background.setScale(1);
+  background.setDisplaySize(2500,1800);
+
+
+  this.matter.world.setBounds();
   this.input.setDefaultCursor('url(assets/sight.cur), pointer');
-
-  //this.input.setDefaultCursor('url(assets/point.cur), pointer');
-
   timeText = this.add.text(100, 200);
 
 
 
-  var Bodies = Phaser.Physics.Matter.Matter.Bodies;
+ /*var particles = this.add.particles('bullet');
 
-    var rect = Bodies.rectangle(0, 0, 98, 98);
-    var circleA = Bodies.circle(-70, 0, 24, { isSensor: true, label: 'left' });
-    var circleB = Bodies.circle(70, 0, 24, { isSensor: true, label: 'right' });
-    var circleC = Bodies.circle(0, -70, 24, { isSensor: true, label: 'top' });
-    var circleD = Bodies.circle(0, 70, 24, { isSensor: true, label: 'bottom' });
-
-    var compoundBody = Phaser.Physics.Matter.Matter.Body.create({
-        parts: [ rect, circleA, circleB, circleC, circleD ]
-    });
-
-
+    particles.createEmitter({
+        x: { min: 0, max: worldLength },
+        y: { min: 0, max: 1000 },
+        lifespan: 5000,
+        speedX: { min: -200, max: -200 },
+        speedY: { min: 300, max: 300 },
+        scale: { start: 0.3, end: 0 },
+        quantity: 8,
+        blendMode: 'ADD'
+    });*/
 
   // Déclaration de groupes
-  this.otherPlayers = this.physics.add.group();
-  platforms = this.physics.add.staticGroup();
-  trees = this.physics.add.staticGroup();
-
-  //zombies = this.add.group();
-  zombies = this.physics.add.group();
-
+  this.otherPlayers = this.add.group();
 
   // Configuration Caméra
   this.cameras.main.setBounds(0, 0, worldLength, 1000);
-  this.physics.world.setBounds(0, 0, worldLength, 1000);
+  this.matter.world.setBounds(0, 0, worldLength, 1000);
 
+  // SONS
   var pistolShot = this.sound.add('pistolshot');
 
-  // Génération du monde
+  // GENERATION
   // ARBRE GENERATION
-  var treeNumbers = randomNumber(10, 50);
-
-  for (var i = 0; i < 50; i++){
+  var treeNumbers = randomNumber(10, 20);
+  for (var i = 0; i < treeNumbers; i++){
     var treePositionX = randomNumber(0, 5000);
-    trees.create(treePositionX, 580, 'tree01');
+    //trees.create(treePositionX, 580, 'tree01');
+    var tree = this.matter.add.image(treePositionX, 530, 'tree01', null, { isStatic: true });
+    //tree.setScale(1,1);
+    tree.setCollisionCategory(catGround);
   }
+  var catZ = this.matter.world.nextCategory();
+  var catGround = this.matter.world.nextCategory();
+  var catBullet = this.matter.world.nextCategory();
+
   //GROUND GENERATION
   for (var i = 0; i < baseGroundLength; i++){
-    platforms.create(i * blocWidth, 700, 'ground01');
+    //platforms.create(i * blocWidth, 700, 'ground01');
+    //this.matter.add.image(i * blocWidth, 700, 'ground01');
+    var ground = this.matter.add.image(i * blocWidth, 700, 'ground01', null, { isStatic: true });
+    ground.setFriction(0);
+    ground.setCollisionCategory(catGround);
   }
+  for (var i = 0; i < baseGroundLength; i++){
+    //platforms.create(i * blocWidth, 700, 'ground01');
+    //this.matter.add.image(i * blocWidth, 700, 'ground01');
+    var ground = this.matter.add.image(i * blocWidth, 750, 'underground01', null, { isStatic: true });
+    ground.setFriction(0);
+    ground.setCollisionCategory(catGround);
+  }
+
+
   //PLATFORM GENERATION
   for (var i = 20; i < 30; i++){
-    platforms.create(i * blocWidth, 300, 'ground01');
+    //platforms.create(i * blocWidth, 300, 'ground01');
+    var platform = this.matter.add.image(i * blocWidth, 300, 'platform01', null, { isStatic: true });
+    platform.setFriction(0);
+    platform.setCollisionCategory(catGround);
   }
   for (var i = 10; i < 20; i++){
-    platforms.create(i * blocWidth, 500, 'ground01');
+    //platforms.create(i * blocWidth, 500, 'ground01');
+    var platform = this.matter.add.image(i * blocWidth, 500, 'platform01', null, { isStatic: true });
+    platform.setFriction(0);
+    platform.setCollisionCategory(catGround);
   }
-
-  var zWalking = this.anims.create({
-      key: 'zwalking',
-      frames: this.anims.generateFrameNumbers('zombie01', { start: 0, end: 24}),
-      frameRate: 13,
-      repeat: -1
-  });
-  var zHited = this.anims.create({
-      key: 'zhited',
-      frames: this.anims.generateFrameNumbers('zombie01', { start: 25, end: 29}),
-      frameRate: 13,
-      repeat: 0
-  });
-  var zAttack = this.anims.create({
-      key: 'zattack',
-      frames: this.anims.generateFrameNumbers('zombie01', { start: 30, end: 47}),
-      frameRate: 13,
-      repeat: -1
-  });
-  var zDie = this.anims.create({
-      key: 'zdie',
-      frames: this.anims.generateFrameNumbers('zombie01', { start: 48, end: 69}),
-      frameRate: 13,
-      repeat: 0
-  });
-/*
-  25-29 hit
-  30-47 attack
-  47-69 die
-*/
-  this.physics.add.collider(zombies, platforms);
-  //this.physics.add.overlap(zombies, this.character);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // Generation de Z
-  var i = 0;
-  function myLoop () {
-     setTimeout(function () {
-       var speedOfThisZ = randomNumber(10, 60);
-       var oneZ = zombies.create(800, 200, 'zombie01').setCollideWorldBounds(true).play('zwalking');
-       //oneZ.setExistingBody(compoundBody);
-//var block = this.matter.add.image(150, 0, 'block');
-
-
-       oneZ.setSize(40, 80).setOffset(24, 18);
-       oneZ.setData({
-         life: 100,
-         level: 1,
-         speed: speedOfThisZ,
-         strength: randomNumber(5, 20),
-         armor: randomNumber(10, 20)
-       });
-       zombiesSpeed.push(speedOfThisZ);
-       //oneZ.setExistingBody(compoundBody);
-       //zombiesLife.push(100);
-        i++;
-        if (i < zombiesPop) {
-           myLoop();
-        }
-     }, randomNumber(200,1000))
-  }
-  myLoop();
-
-
-
-  // Création d'un nouveau joueur
-  this.socket.on('currentPlayers', function (players) {
-    Object.keys(players).forEach(function (id) {
-      if (players[id].playerId === self.socket.id) {
-        playersNumber++;
-        if (playersNumber == 1) {
-          clientIsMaster = true;
-        }
-        clientPlayer = players[id];
-        clientPlayerLife = players[id].playerLife;
-        clientPlayerName = players[id].playerName;
-        self.character = self.physics.add.sprite(players[id].x, players[id].y, 'character').setOrigin(0, 0);//.setDisplaySize(53, 40);
-        self.character.setSize(40, 80).setOffset(24, 18);
-        self.character.setDrag(300);
-        self.character.setCollideWorldBounds(true);
-        self.physics.add.collider(self.character, platforms);
-        self.physics.add.overlap(self.character, zombies, zombiHitPlayer);
-        /*self.physics.add.overlap(self.character, zombies, function(){
-          console.log('hhh');
-        });*/
-        self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 100);
-
-
-
-
-        //self.physics.add.collider(zombies, self.character, null, function(player, zombie){
-          //console.log('touché :p');
-          //zombie.disableBody(true, false);
-          //zombie.anims.play('zattack');
-          //console.log(target.life);
-          /*if (target.data.values.life > 0) {
-            target.data.values.life += -20;
-            if (target.data.values.life > 0) {
-              target.anims.play('zhited');
-              setTimeout(function() {
-                target.anims.play('zwalking');
-              }, 300);
-            }
-
-          }*/
-
-          //bullet.disableBody(true, true);
-          //console.log(target.data.values.life);
-          /*target.on('animationcomplete', function(){
-            target.anims.play('zwalking');
-          });*/
-
-
-
-            //target.anims.play('zwalking');
-        //});
-
-
-
-
-
-
-
-
-
-
-
-
-      } else {
-        playersNumber++;
-        addOtherPlayers(self, players[id]);
-      }
-    });
-  });
-  // Affichage d'un autre nouveau joueur
-  this.socket.on('newPlayer', function (playerInfo) {
-    playersNumber++;
-    addOtherPlayers(self, playerInfo);
-  });
-  // Deconnexion d'un joueur
-  this.socket.on('disconnect', function (playerId) {
-    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
-      if (playerId === otherPlayer.playerId) {
-        playersNumber--;
-        otherPlayer.destroy();
-      }
-    });
-  });
-  // Mouvement d'un autre joueur
-  this.socket.on('playerMoved', function (playerInfo) {
-    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
-      if (playerInfo.playerId === otherPlayer.playerId) {
-        otherPlayer.setRotation(playerInfo.rotation);
-        otherPlayer.setPosition(playerInfo.x, playerInfo.y);
-      }
-    });
-  });
 
   // ANIMATIONS
-  // Player animation
   this.anims.create({
       key: 'walking',
       frames: this.anims.generateFrameNumbers('character', { start: 0, end: 10 }),
@@ -408,6 +178,131 @@ function create() {
       frameRate: 15,
       repeat: 0
   });
+  var zWalking = this.anims.create({
+      key: 'zwalking',
+      frames: this.anims.generateFrameNumbers('zombie01', { start: 0, end: 24}),
+      frameRate: 13,
+      repeat: -1
+  });
+  var zHited = this.anims.create({
+      key: 'zhited',
+      frames: this.anims.generateFrameNumbers('zombie01', { start: 25, end: 29}),
+      frameRate: 13,
+      repeat: 0
+  });
+  var zAttack = this.anims.create({
+      key: 'zattack',
+      frames: this.anims.generateFrameNumbers('zombie01', { start: 30, end: 47}),
+      frameRate: 13,
+      repeat: -1
+  });
+  var zDie = this.anims.create({
+      key: 'zdie',
+      frames: this.anims.generateFrameNumbers('zombie01', { start: 48, end: 69}),
+      frameRate: 13,
+      repeat: 0
+  });
+
+
+
+  // Generation de Z
+  var i = 0;
+  function myLoop () {
+     setTimeout(function () {
+       var Bodies = Phaser.Physics.Matter.Matter.Bodies;
+       //Matter.Bodies.rectangle(x, y, width, height, [options])
+       var rect = Bodies.rectangle(0, 75, 15, 60, { label: "zombieBody" });
+       var circleA = Bodies.circle(0, 40, 8, { label: "zombieHead" });//, { isSensor: true, label: 'head' });
+       var circleB = Bodies.circle(0, 10, 1, { label: "zombiePoint" });
+       var compoundBody = Phaser.Physics.Matter.Matter.Body.create({
+         parts: [ rect, circleA, circleB ]//,
+         /*inertia: Infinity*/
+       });
+       var oneZ = self.matter.add.sprite(0, 0, 'zombie01', null);
+
+       oneZ.play('zwalking');//.setOrigin(0, 0);
+       oneZ.setExistingBody(compoundBody);
+       oneZ.setCollisionCategory(catZ);
+       oneZ.setPosition(700, 300);
+
+       oneZ.setFixedRotation();
+       oneZ.setMass(10);
+       oneZ.setCollidesWith([ catGround, catBullet ]);
+       oneZ.setData({
+         id: i,
+         life: 100,
+         level: 1,
+         speed: randomNumber(2, 5) * 0.3,
+         strength: randomNumber(5, 20),
+         armor: randomNumber(10, 20),
+         team: randomNumber(1, 2),
+         isAlive: true,
+         toDestroy: false
+       });
+       this.zArray.push(oneZ);
+        i++;
+        if (i < zombiesPop) {
+           myLoop();
+        }
+     }, randomNumber(200,1000))
+  }
+  myLoop();
+
+
+  // Création d'un nouveau joueur
+  this.socket.on('currentPlayers', function (players) {
+    Object.keys(players).forEach(function (id) {
+      if (players[id].playerId === self.socket.id) {
+        playersNumber++;
+        if (playersNumber == 1) {
+          clientIsMaster = true;
+        }
+        var Bodies = Phaser.Physics.Matter.Matter.Bodies;
+        var rect = Bodies.rectangle(0, 0, 40, 100);
+        var compoundBodyPlayer = Phaser.Physics.Matter.Matter.Body.create({
+          parts: [ rect ],
+          inertia: Infinity
+        });
+        clientPlayer = players[id];
+        clientPlayerLife = players[id].playerLife;
+        clientPlayerName = players[id].playerName;
+        self.character = self.matter.add.sprite(players[id].x, players[id].y, 'character');
+        self.character.setExistingBody(compoundBodyPlayer);
+        self.character.setPosition(600, 200);
+        self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 150);
+
+      } else {
+        playersNumber++;
+        addOtherPlayers(self, players[id]);
+      }
+    });
+  });
+
+  // Affichage d'un autre nouveau joueur
+  this.socket.on('newPlayer', function (playerInfo) {
+    playersNumber++;
+    addOtherPlayers(self, playerInfo);
+  });
+
+  // Deconnexion d'un joueur
+  this.socket.on('disconnect', function (playerId) {
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      if (playerId === otherPlayer.playerId) {
+        playersNumber--;
+        otherPlayer.destroy();
+      }
+    });
+  });
+
+  // Mouvement d'un autre joueur
+  this.socket.on('playerMoved', function (playerInfo) {
+    self.otherPlayers.getChildren().forEach(function (otherPlayer) {
+      if (playerInfo.playerId === otherPlayer.playerId) {
+        otherPlayer.setRotation(playerInfo.rotation);
+        otherPlayer.setPosition(playerInfo.x, playerInfo.y);
+      }
+    });
+  });
 
   // Configuration des touches
   this.input.mouse.disableContextMenu();
@@ -420,173 +315,121 @@ function create() {
 
   // JUMP SPACE config
   this.input.keyboard.on('keydown_SPACE', function (event) {
-    if (self.character.body.touching.down) {
+    //console.log(self.character.body);
+    //if (self.character.body.touching.down) {
       self.character.setVelocityY( - jumpForce);
       isNotJumping = false;
       self.character.anims.play('jumping', true);
       self.character.on('animationcomplete', animComplete, this);
-    }
+    //}
   });
-
-
-  // Viseur
-  var BetweenPoints = Phaser.Math.Angle.BetweenPoints;
-  var SetToAngle = Phaser.Geom.Line.SetToAngle;
-  var velocityFromRotation = this.physics.velocityFromRotation;
-  //var gfx = this.add.graphics().setDefaultStyles({ lineStyle: { width: 1, color: 0x26b5ff, alpha: 0.5 } });
-  var velocity = new Phaser.Math.Vector2();
-  //var line = new Phaser.Geom.Line();
-
-  var sight = this.add.image(0, 0, 'sight');
-
-  var bullet = this.physics.add.image(0, 0, 'bullet');
-  bullet.disableBody(true, true);
-  bullet.setBounce(1, 1);
-  //this.physics.add.collider(bullet, zombies);
-
-
-  /*if (isAttacking == true) {
-    target.anims.play('zattack');
-  } else {
-    target.anims.play('zwalking');
-  }*/
-
-
-  this.physics.add.collider(bullet, platforms, function(bullet, target){
-    bullet.disableBody(true, true);
-  });
-  this.physics.add.collider(bullet, zombies, null, function(bullet, target){
-    //console.log(target.life);
-    if (target.data.values.life > 0) {
-      target.data.values.life += -20;
-      console.log(bullet);
-      if (target.data.values.life > 0) {
-        target.anims.play('zhited');
-        setTimeout(function() {
-          target.anims.play('zwalking');
-        }, 300);
-      }
-
-    }
-
-    bullet.disableBody(true, true);
-    //console.log(target.data.values.life);
-    /*target.on('animationcomplete', function(){
-      target.anims.play('zwalking');
-    });*/
-
-    if (target.data.values.life <= 0) {
-      /*target.on('animationcomplete', function(e, n, target){
-        //target.anims.play('zwalking');
-        //this.destroy();
-        console.log('ha');
-      });*/
-      //target.setVelocityX(0);
-      target.anims.play('zdie');
-      target.disableBody(false, false);
-      setTimeout(function() {
-        target.destroy();
-        //console.log('destroyed');
-      }, 1300);
-
-      //target.anims.play('zwalking');
-    }
-
-  });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  if (self.character) {
-    //this.physics.add.overlap(self.character, zombies);
-
-    /*this.physics.overlap(self.character, zombies, function(){
-      console.log('jjj');
-    });*/
-    //var bullet = this.physics.add.image(self.character.x, self.character.y, 'tree01');
-    bullet.x = self.character.x + 45;
-    bullet.y = self.character.y + 40;
-  }
 
   // POINTER MOVEMENT
   this.input.on('pointermove', function (pointer) {
     if (self.character) {
-
       var slide = self.input.mousePointer.worldX - pointer.x;
       var slideY = self.input.mousePointer.worldY - pointer.y;
-
-      //sight.x = pointer.x + slide;
-      //sight.y = pointer.y + slideY;
-
-      if (self.character.x > (pointer.x - 45 + slide)){
+      if (self.character.x > (pointer.x + slide)){
         self.character.flipX = true;
         self.lookToTheRight = false;
       } else {
         self.character.flipX = false;
         self.lookToTheRight = true;
       }
-      //console.log(pointer);
-      //var angle = BetweenPoints(self.character, pointer);
-      var characterPoint = new Phaser.Geom.Point(self.character.x - slide + 45, self.character.y - slideY +40);
-      //console.log(characterPoint);
-      //characterPoint.x = self.character.x;
-      //characterPoint.y = self.character.y;
-      var angle = BetweenPoints(characterPoint, pointer);
-      //console.log(angle);
-
-      //SetToAngle(line, self.character.x + 45, self.character.y + 40, angle, 150);
-      velocityFromRotation(angle, 2000, velocity);
-      //gfx.clear().strokeLineShape(line);
     }
   });
 
+
+
+
   // TIR POINTER
-  this.input.on('pointerup', function () {
-        // Enable physics body and reset (at position), activate game object, show game object
-        bullet.enableBody(true, self.character.x + 45, self.character.y + 40, true, true).setVelocity(velocity.x, velocity.y);
-        //bullet.disableBody(true, true);
-        /*setTimeout(function() {
-          bullet.disableBody(true, true);
-        }, 1000);*/
+  this.input.on('pointerup', function (pointer) {
+    if (self.character) {
+      var BetweenPoints = Phaser.Math.Angle.BetweenPoints;
+      var velocity = new Phaser.Math.Vector2();
+      var velocityFromRotation = this.physics.velocityFromRotation;
+      var slide = self.input.mousePointer.worldX - pointer.x;
+      var slideY = self.input.mousePointer.worldY - pointer.y;
+      var characterPoint = new Phaser.Geom.Point(self.character.x - slide, self.character.y - slideY);
+      var angle = BetweenPoints(characterPoint, pointer);
+      velocityFromRotation(angle, 30, velocity);
+      var Bodies = Phaser.Physics.Matter.Matter.Bodies;
+      var rect = Bodies.rectangle(0, 0, 2, 2, { label: "bulletBody" });
+      var compoundBodyBullet = Phaser.Physics.Matter.Matter.Body.create({
+        parts: [ rect ]
+      });
+      var bullet = self.matter.add.sprite(0, 0, 'bullet', null);
+      bullet.setExistingBody(compoundBodyBullet);
+      bullet.setPosition(self.character.x, self.character.y);
+      bullet.setVelocity(velocity.x, velocity.y);
+      //bullet.setMass(10);
+      bullet.setCollisionCategory(catBullet);
+      bullet.setCollidesWith([ catZ ]);
+      /*bullet.setData({
+        life: 100,
+        level: 1,
+        speed: randomNumber(2, 5) * 0.3,
+        strength: randomNumber(5, 20),
+        armor: randomNumber(10, 20),
+        team: randomNumber(1, 2)
+      });*/
+    }
+        setTimeout(function() {
+          bullet.destroy();
+        }, 1000);
+
         pistolShot.play();
     }, this);
 
+    this.matter.world.on('collisionstart', function (event) {
+      //console.log(event.pairs);
+      var pairs = event.pairs;
+      for (var i = 0; i < pairs.length; i++){
+        //console.log(pairs[i]);
+        var bodyA = pairs[i].bodyA;
+        var bodyB = pairs[i].bodyB;
 
+        // Si on a à faire au collider zombie
+        if (bodyA.label === 'zombieBody' || bodyA.label === 'zombieHead') {
+
+          // Détruit la bullet
+          bodyB.gameObject.destroy();
+          // Si la vie est au dessus de zero
+          if (bodyA.gameObject.data.values.life > 0) {
+            // Si c'est dans la tête
+            if (bodyA.label === 'zombieHead') {
+              bodyA.gameObject.data.values.life = 0;
+              bodyA.gameObject.data.values.toDestroy = true;
+            // Si c'est dans le corps
+          } else if ((bodyA.label === 'zombieBody')){
+              bodyA.gameObject.data.values.life += -20;
+              if (bodyA.gameObject.data.values.life > 0) {
+                bodyA.gameObject.anims.play('zhited');
+                setTimeout(function() {
+                  bodyA.gameObject.anims.play('zwalking');
+                }, 300);
+              } else {
+                bodyA.gameObject.data.values.toDestroy = true;
+              }
+
+            }
+          } else if (bodyA.gameObject.data.values.toDestroy === false){
+
+          }
+          console.log(bodyA.gameObject.data.values.life);
+        }
+      }
+    });
 
   // Position du canvas (html)
   resizeWindow();
 }
 
 function animComplete(animation, frame){
-
-
   if(animation.key === 'jumping'){
     isNotJumping = true;
-    //this.animKeyStack.pop();
-    //this.currentAnim = this.animKeyStack[this.animKeyStack.length - 1];
-    //this.anims.play(this.currentAnim, true);
   }
-  /*if(animation.key === 'running'){
-    isNotRunning = true;
-    //this.animKeyStack.pop();
-    //this.currentAnim = this.animKeyStack[this.animKeyStack.length - 1];
-    //this.anims.play(this.currentAnim, true);
-  }*/
-
 }
-
 
 // Ajout d'autres nouveaux joueurs
 function addOtherPlayers(self, playerInfo) {
@@ -596,97 +439,90 @@ function addOtherPlayers(self, playerInfo) {
 }
 
 function zombiHitPlayer(p, z){
-  console.log(p);
+  //console.log(p);
   clientPlayer.playerLife--;
-  console.log(clientPlayer.playerLife);
+  //console.log(clientPlayer.playerLife);
   if (clientPlayer.playerLife < 0) {
-    console.log('DEAD');
+    //console.log('DEAD');
   }
+}
+
+function destroyZombie(a){
+  setTimeout(function() {
+    zArray[a].destroy();
+    zArray.splice(a, 1);
+  }, 1300);
+
+  //a--;
 }
 
 // UPDATER
 function update(time, delta) {
   var slideCamera = this.cameras.main._scrollX;
-  var zombiesNumber = zombies.getChildren().length;
+  //var zombiesNumber = zombies.getChildren().length;
+  var zombiesNumber = zArray.length;
 
-
+  background.setPosition(slideCamera, 0);
 
   if (this.character) {
+    //var zombieToDestroy;
 
-    for (var z = 0; z < zombiesNumber; z++){
+    for (var a = 0; a < zArray.length; a++){
+      if (zArray[a].data.values.life <= 0 && zArray[a].data.values.isAlive == true) {
+        zArray[a].anims.play('zdie', true);
+        zArray[a].setVelocityX(0);
+        zArray[a].data.values.isAlive = false;
 
-      var horizontalRange = (zombies.getChildren()[z].x - 45 ) - this.character.x;
-      var verticalRange = (zombies.getChildren()[z].y - 45 ) - this.character.y;
+        destroyZombie(a);
+      }
 
-      // Si ils sont au même étage
-      if (Math.abs(verticalRange) < 80) {
+    }
 
-        if (horizontalRange > 45) {
-          //zombies.getChildren()[z].anims.play('zwalking');
-          zombies.getChildren()[z].setVelocityX( - self.zombiesSpeed[z] * speed);
-          zombies.getChildren()[z].flipX = true;
-        } else if (horizontalRange < -45){
-          //zombies.getChildren()[z].anims.play('zwalking');
-          zombies.getChildren()[z].setVelocityX( self.zombiesSpeed[z] * speed);
-          zombies.getChildren()[z].flipX = false;
-        }
+    zombiesNumber = zArray.length;
 
-        /*if (Math.abs(horizontalRange ) < 45) {
-          //zombies.getChildren()[z].setVelocityX(0);
-          //isAttacking = true;
-          //zombies.getChildren()[z].anims.play('zattack');
-        } else {
-          //isAttacking = false;
-          if (horizontalRange > 45) {
-            //zombies.getChildren()[z].anims.play('zwalking');
-            zombies.getChildren()[z].setVelocityX( - self.zombiesSpeed[z] * speed);
-            zombies.getChildren()[z].flipX = true;
-          } else if (horizontalRange < -45){
-            //zombies.getChildren()[z].anims.play('zwalking');
-            zombies.getChildren()[z].setVelocityX( self.zombiesSpeed[z] * speed);
-            zombies.getChildren()[z].flipX = false;
+    for (var z = 0; z < zArray.length; z++){
+
+        //console.log(zArray[z].x);
+        var horizontalRange = (zArray[z].x ) - this.character.x;
+        var verticalRange = (zArray[z].y ) - this.character.y;
+        //console.log(zArray[z].data.values.speed);
+        // Si ils sont au même étage
+        if (zArray[z].data.values.isAlive == true) {
+          if (Math.abs(verticalRange < 80)) {
+
+            if (horizontalRange > 45) {
+              zArray[z].setVelocityX( - zArray[z].data.values.speed * speed);
+              zArray[z].flipX = true;
+            } else if (horizontalRange < -45){
+              zArray[z].setVelocityX( zArray[z].data.values.speed * speed);
+              zArray[z].flipX = false;
+            }
+          } else {
+            isAttacking = false;
+            //si  il n'est pas au même étage
+            if ( zArray[z].data.values.team % 2 == 0 ) {
+              zArray[z].setVelocityX( 1 * speed);
+              zArray[z].flipX = false;
+            } else {
+              zArray[z].setVelocityX( - 1 * speed);
+              zArray[z].flipX = true;
+            }
           }
-        }*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      } else {
-        isAttacking = false;
-        //zombies.getChildren()[z].anims.play('zwalking');
-        //si  il n'est pas au même étage
-        if ( self.zombiesSpeed[z] % 2 == 0 ) {
-          zombies.getChildren()[z].setVelocityX( self.zombiesSpeed[z] * speed);
-          zombies.getChildren()[z].flipX = false;
-        } else {
-          zombies.getChildren()[z].setVelocityX( - self.zombiesSpeed[z] * speed);
-          zombies.getChildren()[z].flipX = true;
-        }
-
       }
     }
   }
 
-  timeText.setText(
-    'Time: ' + time.toFixed(0) +
-    '\nDelta: ' + delta.toFixed(2) +
-    '\nLevel: --' +
-    '\nPlayers Number: ' + playersNumber +
-    '\nZombies Number: ' + zombiesNumber +
-    '\nMaster: ' + clientIsMaster +
-    '\nPlayer Name: ' + clientPlayerName);
+  if (clientPlayer) {
+    timeText.setText(
+      'Time: ' + time.toFixed(0) +
+      '\nDelta: ' + delta.toFixed(2) +
+      '\nLevel: --' +
+      '\nPlayers Number: ' + playersNumber +
+      '\nZombies Number: ' + zombiesNumber +
+      '\nMaster: ' + clientIsMaster +
+      '\nPlayer Name: ' + clientPlayerName +
+      '\nPlayer Life: ' + clientPlayer.playerLife);
+  }
 
   timeText.x = slideCamera +100;
   var self_player = this.character;
@@ -696,7 +532,7 @@ function update(time, delta) {
 
     // LEFT
     if (this.cursors.left.isDown || keyLeft.isDown) {
-      this.character.setVelocityX( - 160 * speed);
+      this.character.setVelocityX( - 2 * speed);
       if (isNotJumping) {
         if (isNotRunning) {
           if (this.lookToTheRight) {
@@ -711,39 +547,30 @@ function update(time, delta) {
             this.character.anims.play('running', true);
           }
         }
-
       }
 
     // RIGHT
   } else if (this.cursors.right.isDown || keyRight.isDown) {
-      this.character.setVelocityX( 160 * speed);
+      this.character.setVelocityX( 2 * speed);
       if (isNotJumping) {
         if (isNotRunning) {
-
           if (this.lookToTheRight) {
             this.character.anims.play('walking', true);
           } else {
             this.character.anims.playReverse('walking', true);
           }
-
         } else {
-
           if (this.lookToTheRight) {
             this.character.anims.play('running', true);
           } else {
             this.character.anims.playReverse('running', true);
           }
-
         }
-
-
       }
-
 
     // IDLE
     } else {
       this.character.setVelocityX(0);
-
       if (isNotJumping) {
         this.character.anims.play('idle', true);
       }
@@ -753,10 +580,10 @@ function update(time, delta) {
     if (this.cursors.shift.isDown) {
       isNotRunning = false;
       if (this.cursors.left.isDown || keyLeft.isDown) {
-        this.character.setVelocityX(-400);
+        this.character.setVelocityX(- 5 * speed);
       }
       if (this.cursors.right.isDown || keyRight.isDown) {
-        this.character.setVelocityX(400);
+        this.character.setVelocityX( 5 * speed);
       }
     } else {
       isNotRunning = true;
