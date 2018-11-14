@@ -55,16 +55,19 @@ function preload() {
   //this.load.json('jsonData', 'assets/data/map.json');
   this.load.spritesheet('character', 'assets/player.png', { frameWidth: 90, frameHeight: 100 });
   this.load.spritesheet('zombie01', 'assets/Z.png', { frameWidth: 90, frameHeight: 100 });
-  this.load.image('ground01', 'assets/ground01.png');
   this.load.image('ground300', 'assets/ground300.png');
-  this.load.image('underground01', 'assets/underground01.png');
   this.load.image('platform01', 'assets/platform01.png');
-  this.load.image('platform02', 'assets/platform02.png');
   this.load.image('tree01', 'assets/tree01.png');
+  this.load.image('tree02', 'assets/tree02.png');
+  this.load.image('tree03', 'assets/tree03.png');
+  this.load.image('tree04', 'assets/tree04.png');
+  this.load.image('tree05', 'assets/tree05.png');
+  this.load.image('tree06', 'assets/tree06.png');
+  this.load.image('bush01', 'assets/bush01.png');
   this.load.image('bullet', 'assets/bullet.png');
   this.load.image('rain', 'assets/rain.png');
   this.load.image('fog', 'assets/fog.png');
-  this.load.image('bg01', 'assets/bg01.jpg');
+  this.load.image('bg01', 'assets/bg01.png');
 
 
   this.load.audio('pistolshot', [
@@ -105,6 +108,7 @@ function create() {
     speedY: { min: 500, max: 900 },
     scale: { start: 0.5, end: 0.1 },
     quantity: 10,
+    //collideBottom: true,
     blendMode: 'ADD'
   });
 
@@ -161,14 +165,37 @@ function create() {
 
   // GENERATION
   // ARBRE GENERATION
-  var treeNumbers = randomNumber(10, 20);
+  var treeNumbers = randomNumber(2, 5);
   for (var i = 0; i < treeNumbers; i++){
-    var treePositionX = randomNumber(0, 5000);
-    //trees.create(treePositionX, 580, 'tree01');
-    var tree = this.matter.add.image(treePositionX, 530, 'tree01', null, { isStatic: true });
-    //tree.setScale(1,1);
+    var treePositionX = randomNumber(0, worldLength);
+    var tree = this.matter.add.image(0, 0, 'tree04', null, { isStatic: true });
+    tree.setPosition(treePositionX,520);
     tree.setCollisionCategory(catGround);
   }
+  for (var i = 0; i < treeNumbers; i++){
+    var treePositionX = randomNumber(0, worldLength);
+    var tree = this.matter.add.image(0, 0, 'tree02', null, { isStatic: true });
+    tree.setPosition(treePositionX,480);
+    tree.setCollisionCategory(catGround);
+  }
+  for (var i = 0; i < treeNumbers; i++){
+    var treePositionX = randomNumber(0, worldLength);
+    var tree = this.matter.add.image(0, 0, 'tree03', null, { isStatic: true });
+    tree.setPosition(treePositionX,580);
+    tree.setCollisionCategory(catGround);
+  }
+  for (var i = 0; i < treeNumbers; i++){
+    var treePositionX = randomNumber(0, worldLength);
+    var tree = this.matter.add.image(0, 0, 'tree06', null, { isStatic: true });
+    tree.setPosition(treePositionX,450);
+    tree.setCollisionCategory(catGround);
+  }
+
+
+
+
+
+
   var catZ = this.matter.world.nextCategory();
   var catGround = this.matter.world.nextCategory();
   var catBullet = this.matter.world.nextCategory();
@@ -196,14 +223,14 @@ function create() {
   //PLATFORM GENERATION
   for (var i = 20; i < 30; i++){
     //platforms.create(i * blocWidth, 300, 'ground01');
-    var platform = this.matter.add.image(i * blocWidth, 300, 'platform02', null, { isStatic: true });
+    var platform = this.matter.add.image(i * blocWidth, 300, 'platform01', null, { isStatic: true });
     platform.setFriction(0);
     platform.setOrigin(0.5, 0.75);
     platform.setCollisionCategory(catGround);
   }
   for (var i = 10; i < 20; i++){
     //platforms.create(i * blocWidth, 500, 'ground01');
-    var platform = this.matter.add.image(i * blocWidth, 500, 'platform02', null, { isStatic: true });
+    var platform = this.matter.add.image(i * blocWidth, 500, 'platform01', null, { isStatic: true });
     platform.setFriction(0);
     platform.setOrigin(0.5, 0.75);
     platform.setCollisionCategory(catGround);
@@ -324,7 +351,7 @@ function create() {
         clientPlayerName = players[id].playerName;
         self.character = self.matter.add.sprite(players[id].x, players[id].y, 'character');
         self.character.setExistingBody(compoundBodyPlayer);
-        self.character.setPosition(600, 200);
+        self.character.setPosition(400, 200);
         self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 20);
 
       } else {
@@ -544,8 +571,16 @@ function update(time, delta) {
         //console.log(zArray[z].data.values.speed);
         // Si ils sont au même étage
         if (zArray[z].data.values.isAlive == true) {
-          if (Math.abs(verticalRange < 80)) {
+          if (verticalRange > 80) {
 
+            if (horizontalRange > 45 || verticalRange < 80) {
+              zArray[z].setVelocityX( - zArray[z].data.values.speed * speed);
+              zArray[z].flipX = true;
+            } else if (horizontalRange < -45){
+              zArray[z].setVelocityX( zArray[z].data.values.speed * speed);
+              zArray[z].flipX = false;
+            }
+          } else if (verticalRange < 80){
             if (horizontalRange > 45) {
               zArray[z].setVelocityX( - zArray[z].data.values.speed * speed);
               zArray[z].flipX = true;
