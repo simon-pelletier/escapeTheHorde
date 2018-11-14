@@ -1,6 +1,6 @@
 // VARIABLES DE CONFIG
 var speed = 1;
-var jumpForce = 9;
+var jumpForce = 6;
 var worldLength = 3000;
 var gravityG = 1;
 var zombiesPop = 20;
@@ -41,6 +41,9 @@ var isNotRunning = true;
 var isAttacking = false;
 var timeText;
 
+var gameStarted = false;
+
+
 var goToTheRight = true;
 var lookToTheRight = true;
 
@@ -69,10 +72,29 @@ function preload() {
   this.load.image('fog', 'assets/fog.png');
   this.load.image('bg01', 'assets/bg01.png');
 
+  this.load.image('megaphone01', 'assets/megaphone01.png');
+  this.load.image('grass01', 'assets/grass01.png');
+  this.load.image('grass02', 'assets/grass02.png');
+  this.load.image('grass03', 'assets/grass03.png');
+  this.load.image('grass04', 'assets/grass04.png');
+  this.load.image('bush01', 'assets/bush01.png');
+  this.load.image('bush02', 'assets/bush02.png');
+  this.load.image('bush03', 'assets/bush03.png');
+  this.load.image('camp01', 'assets/camp01.png');
+  this.load.image('firebase01', 'assets/firebase01.png');
+  this.load.image('fence01', 'assets/fence01.png');
+  this.load.image('fence02', 'assets/fence02.png');
 
-  this.load.audio('pistolshot', [
-        'assets/audio/pistolshot.wav'
-    ]);
+
+
+  this.load.audio('pistolshot', ['assets/audio/pistolshot.wav']);
+  this.load.audio('alarm', ['assets/audio/alarm.wav']);
+  this.load.audio('rain', ['assets/audio/rain.wav']);
+  this.load.audio('coucou', ['assets/audio/coucou.wav']);
+  this.load.audio('crickets', ['assets/audio/crickets.wav']);
+  this.load.audio('z01', ['assets/audio/z01.wav']);
+  this.load.audio('z02', ['assets/audio/z02.wav']);
+  this.load.audio('z03', ['assets/audio/z03.wav']);
 }
 
 // LAUNCHER
@@ -97,7 +119,6 @@ function create() {
   bottomMask.fillRect(0, 700, worldLength, 300);
 
 
-
   var rainning = this.add.particles('rain');
 
   rainning.createEmitter({
@@ -107,19 +128,18 @@ function create() {
     speedX: { min: -20, max: 20 },
     speedY: { min: 500, max: 900 },
     scale: { start: 0.5, end: 0.1 },
-    quantity: 10,
+    quantity: 5,
+    frequency: 30,
     //collideBottom: true,
     blendMode: 'ADD'
   });
-
-
 
   var fog = this.add.particles('fog');
   fog.createEmitter({
     x: { min: 0, max: worldLength },
     y: { min: 900, max: 900 },
     lifespan: 9000,
-    speedX: { min: 5, max: 10 },
+    speedX: { min: 5, max: 100 },
     speedY: { min: -1, max: -3 },
     scale: { start: 1, end: 2 },
     rotate: { min: -40, max: 40 },
@@ -130,6 +150,7 @@ function create() {
     maxParticles: 100,
     blendMode: 'ADD'
   });
+
   var fog2 = this.add.particles('fog');
   fog2.createEmitter({
     x: { min: 0, max: worldLength },
@@ -147,11 +168,20 @@ function create() {
     blendMode: 'ADD'
   });
 
-  background.setDepth(-5);
-  fog.setDepth(-4);
+  var megaPhoneElt = this.add.image(0, 0, 'megaphone01');
+  megaPhoneElt.setPosition(600,520);
+  var fenceStart = this.add.image(0, 0, 'fence01');
+  fenceStart.setPosition(200,550);
+
+  background.setDepth(-10);
+  fog.setDepth(-9);
+  rainning.setDepth(-8);
+  bottomMask.setDepth(-7);
+  fenceStart.setDepth(-7)
+  megaPhoneElt.setDepth(-6);
+  //0
   fog2.setDepth(1);
-  rainning.setDepth(-3);
-  bottomMask.setDepth(-2);
+
 
   // Déclaration de groupes
   this.otherPlayers = this.add.group();
@@ -160,36 +190,84 @@ function create() {
   this.cameras.main.setBounds(0, 0, worldLength, 750);
   this.matter.world.setBounds(0, 0, worldLength, 1000);
 
+
+
   // SONS
   var pistolShot = this.sound.add('pistolshot');
+  pistolShot.volume = 0.2;
 
-  // GENERATION
-  // ARBRE GENERATION
-  var treeNumbers = randomNumber(2, 5);
-  for (var i = 0; i < treeNumbers; i++){
-    var treePositionX = randomNumber(0, worldLength);
-    var tree = this.matter.add.image(0, 0, 'tree04', null, { isStatic: true });
-    tree.setPosition(treePositionX,520);
-    tree.setCollisionCategory(catGround);
+  var rainSound = this.sound.add('rain');
+  rainSound.volume = 0.2;
+  rainSound.play();
+  rainSound.loop = true;
+
+  var coucouSound = this.sound.add('coucou');
+  coucouSound.volume = 0.5;
+  coucouSound.play();
+  coucouSound.loop = true;
+
+  var cricketsSound = this.sound.add('crickets');
+  cricketsSound.volume = 0.2;
+  cricketsSound.play();
+  cricketsSound.loop = true;
+
+  // Z SOUNDS
+
+  var zSound01 = this.sound.add('z01');
+  var zSound02 = this.sound.add('z02');
+  var zSound03 = this.sound.add('z03');
+  zSound01.volume = 0.5;
+  zSound02.volume = 0.5;
+  zSound03.volume = 0.5;
+
+  var frequencyZSound = 200;
+  var myFunction = function() {
+    //console.log(frequencyZSound);
+    if (zArray.length > 1) {
+      var selectionOfZSound = randomNumber(1, 3);
+      var mySound;
+
+      if (selectionOfZSound == 1) {
+        mySound = zSound01;
+      } else if(selectionOfZSound == 2){
+        mySound = zSound02;
+      } else {
+        mySound = zSound03;
+      }
+      mySound.play();
+    }
+    frequencyZSound = randomNumber(500, 10000);
+    setTimeout(myFunction, frequencyZSound);
   }
-  for (var i = 0; i < treeNumbers; i++){
-    var treePositionX = randomNumber(0, worldLength);
-    var tree = this.matter.add.image(0, 0, 'tree02', null, { isStatic: true });
-    tree.setPosition(treePositionX,480);
-    tree.setCollisionCategory(catGround);
+  setTimeout(myFunction, frequencyZSound);
+
+
+
+
+  // GENERATION D'ITEMS !!!
+  function generateItem(itemName, range, itemsNumber, yPosition, flip, depth, collision){
+    for (var i = 0; i < itemsNumber; i++){
+      var xPosition = randomNumber(0, worldLength);
+      var selectionBush = randomNumber(1, range);
+
+      var item = self.matter.add.image(0, 0, itemName + selectionBush, null, { isStatic: true });
+      if (flip) {
+        var flipRandom = randomNumber(0, 1);
+        if (flipRandom == 0) {
+          item.flipX= true;
+        }
+      }
+
+      item.setPosition( xPosition, yPosition );
+      item.setCollisionCategory( collision );
+      item.setDepth( depth );
+    }
   }
-  for (var i = 0; i < treeNumbers; i++){
-    var treePositionX = randomNumber(0, worldLength);
-    var tree = this.matter.add.image(0, 0, 'tree03', null, { isStatic: true });
-    tree.setPosition(treePositionX,580);
-    tree.setCollisionCategory(catGround);
-  }
-  for (var i = 0; i < treeNumbers; i++){
-    var treePositionX = randomNumber(0, worldLength);
-    var tree = this.matter.add.image(0, 0, 'tree06', null, { isStatic: true });
-    tree.setPosition(treePositionX,450);
-    tree.setCollisionCategory(catGround);
-  }
+  generateItem('tree0', 6, randomNumber(15, 30), 450, true, -9, catGround);
+  generateItem('bush0', 3, randomNumber(8, 16), 620, true, -6, catGround);
+  generateItem('grass0', 4, randomNumber(10, 30), 648, true, 3, catGround);
+  generateItem('camp0', 1, 1, 628, false, -1, catGround);
+  generateItem('firebase0', 1, 1, 645, false, -1, catGround);
 
 
 
@@ -202,17 +280,10 @@ function create() {
 
   //GROUND GENERATION
   for (var i = 0; i < baseGroundLength; i++){
-    //platforms.create(i * blocWidth, 700, 'ground01');
-    //this.matter.add.image(i * blocWidth, 700, 'ground01');
-    /*var Bodies = Phaser.Physics.Matter.Matter.Bodies;
-    var rect = Bodies.rectangle(0, 0, 300, 80, { label: "groundBosdy" });
-    var compoundBodyGround = Phaser.Physics.Matter.Matter.Body.create({
-      parts: [ rect ]
-    });*/
-
     var ground = this.matter.add.image(i * 300, 700, 'ground300', null, { isStatic: true });
     ground.setFriction(0);
     ground.setOrigin(0.75);
+    ground.setDepth( -2 );
     //ground.setExistingBody(compoundBodyGround);
     //ground.setDepth(2);
     ground.setCollisionCategory(catGround);
@@ -221,7 +292,7 @@ function create() {
 
 
   //PLATFORM GENERATION
-  for (var i = 20; i < 30; i++){
+  /*for (var i = 20; i < 30; i++){
     //platforms.create(i * blocWidth, 300, 'ground01');
     var platform = this.matter.add.image(i * blocWidth, 300, 'platform01', null, { isStatic: true });
     platform.setFriction(0);
@@ -234,7 +305,7 @@ function create() {
     platform.setFriction(0);
     platform.setOrigin(0.5, 0.75);
     platform.setCollisionCategory(catGround);
-  }
+  }*/
 
   // ANIMATIONS
   this.anims.create({
@@ -290,7 +361,8 @@ function create() {
 
   // Generation de Z
   var i = 0;
-  function myLoop () {
+  function generateZ () {
+
      setTimeout(function () {
        var Bodies = Phaser.Physics.Matter.Matter.Bodies;
        //Matter.Bodies.rectangle(x, y, width, height, [options])
@@ -299,7 +371,7 @@ function create() {
        var circleB = Bodies.circle(0, 10, 1, { label: "zombiePoint" });
        var compoundBody = Phaser.Physics.Matter.Matter.Body.create({
          parts: [ rect, circleA, circleB ]//,
-         /*inertia: Infinity*/
+
        });
        var oneZ = self.matter.add.sprite(0, 0, 'zombie01', null);
 
@@ -322,14 +394,16 @@ function create() {
          isAlive: true,
          toDestroy: false
        });
+
        this.zArray.push(oneZ);
         i++;
         if (i < zombiesPop) {
-           myLoop();
+           generateZ();
         }
      }, randomNumber(200,200))
   }
-  myLoop();
+  generateZ();
+
 
 
   // Création d'un nouveau joueur
@@ -351,7 +425,7 @@ function create() {
         clientPlayerName = players[id].playerName;
         self.character = self.matter.add.sprite(players[id].x, players[id].y, 'character');
         self.character.setExistingBody(compoundBodyPlayer);
-        self.character.setPosition(400, 200);
+        self.character.setPosition(300, 500);
         self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 20);
 
       } else {
@@ -460,7 +534,7 @@ function create() {
         setTimeout(function() {
           bullet.destroy();
         }, 1000);
-        pistolShot.volume = 0.5;
+
         pistolShot.play();
     }, this);
 
@@ -514,6 +588,48 @@ function animComplete(animation, frame){
   }
 }
 
+/*function generateZ () {
+  var i = 0;
+   setTimeout(function () {
+     var Bodies = Phaser.Physics.Matter.Matter.Bodies;
+     //Matter.Bodies.rectangle(x, y, width, height, [options])
+     var rect = Bodies.rectangle(0, 75, 15, 60, { label: "zombieBody" });
+     var circleA = Bodies.circle(0, 40, 8, { label: "zombieHead" });//, { isSensor: true, label: 'head' });
+     var circleB = Bodies.circle(0, 10, 1, { label: "zombiePoint" });
+     var compoundBody = Phaser.Physics.Matter.Matter.Body.create({
+       parts: [ rect, circleA, circleB ]//,
+
+     });
+     var oneZ = Phaser.matter.add.sprite(0, 0, 'zombie01', null);
+
+     oneZ.play('zwalking');//.setOrigin(0, 0);
+     oneZ.setExistingBody(compoundBody);
+     oneZ.setCollisionCategory(catZ);
+     oneZ.setPosition(100, 600);
+
+     oneZ.setFixedRotation();
+     oneZ.setMass(10);
+     oneZ.setCollidesWith([ catGround, catBullet ]);
+     oneZ.setData({
+       id: i,
+       life: 100,
+       level: 1,
+       speed: randomNumber(2, 5) * 0.3,
+       strength: randomNumber(5, 20),
+       armor: randomNumber(10, 20),
+       team: randomNumber(1, 2),
+       isAlive: true,
+       toDestroy: false
+     });
+
+     this.zArray.push(oneZ);
+      i++;
+      if (i < zombiesPop) {
+         generateZ();
+      }
+   }, randomNumber(200,200))
+}*/
+
 // Ajout d'autres nouveaux joueurs
 function addOtherPlayers(self, playerInfo) {
   const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'character').setOrigin(0, 0);//.setDisplaySize(53, 40);
@@ -547,8 +663,22 @@ function update(time, delta) {
 
   background.setPosition(slideCamera, 0);
 
+  //gameStarted
+  //playersNumber
   if (this.character) {
-    //var zombieToDestroy;
+    if (!gameStarted) {
+      if (this.character.x > 600) {
+        console.log('Game Started');
+        var alarmSound = this.sound.add('alarm');
+        alarmSound.volume = 0.5;
+        alarmSound.play();
+        //generateZ();
+        gameStarted = true;
+      }
+    }
+  }
+
+  if (this.character) {
 
     for (var a = 0; a < zArray.length; a++){
       if (zArray[a].data.values.life <= 0 && zArray[a].data.values.isAlive == true) {
