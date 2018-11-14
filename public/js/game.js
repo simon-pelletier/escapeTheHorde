@@ -1,9 +1,9 @@
 // VARIABLES DE CONFIG
 var speed = 1;
-var jumpForce = 10;
+var jumpForce = 9;
 var worldLength = 3000;
 var gravityG = 1;
-var zombiesPop = 5;
+var zombiesPop = 20;
 
 // CONFIGURATION PHASER
 var config = {
@@ -11,7 +11,7 @@ var config = {
   //physics: { default: 'arcade', arcade: { gravity: { y: gravityG }, debug: false } },
   scene: { preload: preload, create: create, update: update, physics: {
       matter: {
-          debug: true,
+          debug: false,
           gravity: { y: gravityG }
       },
       arcade: { gravity: { y: gravityG }, debug: false }
@@ -56,10 +56,14 @@ function preload() {
   this.load.spritesheet('character', 'assets/player.png', { frameWidth: 90, frameHeight: 100 });
   this.load.spritesheet('zombie01', 'assets/Z.png', { frameWidth: 90, frameHeight: 100 });
   this.load.image('ground01', 'assets/ground01.png');
+  this.load.image('ground300', 'assets/ground300.png');
   this.load.image('underground01', 'assets/underground01.png');
   this.load.image('platform01', 'assets/platform01.png');
+  this.load.image('platform02', 'assets/platform02.png');
   this.load.image('tree01', 'assets/tree01.png');
   this.load.image('bullet', 'assets/bullet.png');
+  this.load.image('rain', 'assets/rain.png');
+  this.load.image('fog', 'assets/fog.png');
   this.load.image('bg01', 'assets/bg01.jpg');
 
 
@@ -75,34 +79,81 @@ function create() {
   this.socket = io();
 
   background = this.add.image(0, 0, 'bg01');
-  background.setScale(1);
-  background.setDisplaySize(2500,1800);
 
+  background.setOrigin(0,0);
+  background.setDisplaySize(1200,600);
+  background.setScale(1.2,1.2);
 
   this.matter.world.setBounds();
   this.input.setDefaultCursor('url(assets/sight.cur), pointer');
   timeText = this.add.text(100, 200);
 
+  var bottomMask = this.add.graphics();
+
+  bottomMask.fillStyle(0x331e01, 1);
+  bottomMask.fillRect(0, 700, worldLength, 300);
 
 
- /*var particles = this.add.particles('bullet');
 
-    particles.createEmitter({
-        x: { min: 0, max: worldLength },
-        y: { min: 0, max: 1000 },
-        lifespan: 5000,
-        speedX: { min: -200, max: -200 },
-        speedY: { min: 300, max: 300 },
-        scale: { start: 0.3, end: 0 },
-        quantity: 8,
-        blendMode: 'ADD'
-    });*/
+  var rainning = this.add.particles('rain');
+
+  rainning.createEmitter({
+    x: { min: 0, max: worldLength },
+    y: { min: 0, max: 1000 },
+    lifespan: 5000,
+    speedX: { min: -20, max: 20 },
+    speedY: { min: 500, max: 900 },
+    scale: { start: 0.5, end: 0.1 },
+    quantity: 10,
+    blendMode: 'ADD'
+  });
+
+
+
+  var fog = this.add.particles('fog');
+  fog.createEmitter({
+    x: { min: 0, max: worldLength },
+    y: { min: 900, max: 900 },
+    lifespan: 9000,
+    speedX: { min: 5, max: 10 },
+    speedY: { min: -1, max: -3 },
+    scale: { start: 1, end: 2 },
+    rotate: { min: -40, max: 40 },
+    //quantity: 1,
+    alpha: { start: 0.2, end: 0, ease: 'Quad.easeIn' },
+    //gravityY: -10,
+    frequency: 150,
+    maxParticles: 100,
+    blendMode: 'ADD'
+  });
+  var fog2 = this.add.particles('fog');
+  fog2.createEmitter({
+    x: { min: 0, max: worldLength },
+    y: { min: 900, max: 900 },
+    lifespan: 9000,
+    speedX: { min: 5, max: 10 },
+    speedY: { min: -1, max: -3 },
+    scale: { start: 0.5, end: 2 },
+    rotate: { min: -40, max: 40 },
+    //quantity: 1,
+    alpha: { start: 0.2, end: 0, ease: 'Quad.easeIn' },
+    //gravityY: -10,
+    frequency: 100,
+    maxParticles: 100,
+    blendMode: 'ADD'
+  });
+
+  background.setDepth(-5);
+  fog.setDepth(-4);
+  fog2.setDepth(1);
+  rainning.setDepth(-3);
+  bottomMask.setDepth(-2);
 
   // Déclaration de groupes
   this.otherPlayers = this.add.group();
 
   // Configuration Caméra
-  this.cameras.main.setBounds(0, 0, worldLength, 1000);
+  this.cameras.main.setBounds(0, 0, worldLength, 750);
   this.matter.world.setBounds(0, 0, worldLength, 1000);
 
   // SONS
@@ -126,30 +177,35 @@ function create() {
   for (var i = 0; i < baseGroundLength; i++){
     //platforms.create(i * blocWidth, 700, 'ground01');
     //this.matter.add.image(i * blocWidth, 700, 'ground01');
-    var ground = this.matter.add.image(i * blocWidth, 700, 'ground01', null, { isStatic: true });
+    /*var Bodies = Phaser.Physics.Matter.Matter.Bodies;
+    var rect = Bodies.rectangle(0, 0, 300, 80, { label: "groundBosdy" });
+    var compoundBodyGround = Phaser.Physics.Matter.Matter.Body.create({
+      parts: [ rect ]
+    });*/
+
+    var ground = this.matter.add.image(i * 300, 700, 'ground300', null, { isStatic: true });
     ground.setFriction(0);
+    ground.setOrigin(0.75);
+    //ground.setExistingBody(compoundBodyGround);
+    //ground.setDepth(2);
     ground.setCollisionCategory(catGround);
   }
-  for (var i = 0; i < baseGroundLength; i++){
-    //platforms.create(i * blocWidth, 700, 'ground01');
-    //this.matter.add.image(i * blocWidth, 700, 'ground01');
-    var ground = this.matter.add.image(i * blocWidth, 750, 'underground01', null, { isStatic: true });
-    ground.setFriction(0);
-    ground.setCollisionCategory(catGround);
-  }
+
 
 
   //PLATFORM GENERATION
   for (var i = 20; i < 30; i++){
     //platforms.create(i * blocWidth, 300, 'ground01');
-    var platform = this.matter.add.image(i * blocWidth, 300, 'platform01', null, { isStatic: true });
+    var platform = this.matter.add.image(i * blocWidth, 300, 'platform02', null, { isStatic: true });
     platform.setFriction(0);
+    platform.setOrigin(0.5, 0.75);
     platform.setCollisionCategory(catGround);
   }
   for (var i = 10; i < 20; i++){
     //platforms.create(i * blocWidth, 500, 'ground01');
-    var platform = this.matter.add.image(i * blocWidth, 500, 'platform01', null, { isStatic: true });
+    var platform = this.matter.add.image(i * blocWidth, 500, 'platform02', null, { isStatic: true });
     platform.setFriction(0);
+    platform.setOrigin(0.5, 0.75);
     platform.setCollisionCategory(catGround);
   }
 
@@ -181,7 +237,7 @@ function create() {
   var zWalking = this.anims.create({
       key: 'zwalking',
       frames: this.anims.generateFrameNumbers('zombie01', { start: 0, end: 24}),
-      frameRate: 13,
+      frameRate: 18,
       repeat: -1
   });
   var zHited = this.anims.create({
@@ -223,7 +279,7 @@ function create() {
        oneZ.play('zwalking');//.setOrigin(0, 0);
        oneZ.setExistingBody(compoundBody);
        oneZ.setCollisionCategory(catZ);
-       oneZ.setPosition(700, 300);
+       oneZ.setPosition(100, 600);
 
        oneZ.setFixedRotation();
        oneZ.setMass(10);
@@ -244,7 +300,7 @@ function create() {
         if (i < zombiesPop) {
            myLoop();
         }
-     }, randomNumber(200,1000))
+     }, randomNumber(200,200))
   }
   myLoop();
 
@@ -269,7 +325,7 @@ function create() {
         self.character = self.matter.add.sprite(players[id].x, players[id].y, 'character');
         self.character.setExistingBody(compoundBodyPlayer);
         self.character.setPosition(600, 200);
-        self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 150);
+        self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 20);
 
       } else {
         playersNumber++;
@@ -377,7 +433,7 @@ function create() {
         setTimeout(function() {
           bullet.destroy();
         }, 1000);
-
+        pistolShot.volume = 0.5;
         pistolShot.play();
     }, this);
 
@@ -416,7 +472,7 @@ function create() {
           } else if (bodyA.gameObject.data.values.toDestroy === false){
 
           }
-          console.log(bodyA.gameObject.data.values.life);
+          //console.log(bodyA.gameObject.data.values.life);
         }
       }
     });
