@@ -5,13 +5,15 @@ var worldLength = 2000;
 var gravityG = 1;
 var zombiesPop = 6;
 
+var devMod = true;
+
 // CONFIG PHASER
 var config = {
   type: Phaser.AUTO, width: 1200, height: 600,
   //physics: { default: 'arcade', arcade: { gravity: { y: gravityG }, debug: false } },
   scene: { preload: preload, create: create, update: update, physics: {
       matter: {
-          debug: false,
+          debug: devMod,
           gravity: { y: gravityG }
       },
       arcade: { gravity: { y: gravityG }, debug: false }
@@ -203,8 +205,10 @@ function create() {
   // SONS
   var themeSound = this.sound.add('theme');
   themeSound.volume = 0.1;
-  themeSound.play();
   themeSound.loop = true;
+  if (devMod) {
+    themeSound.play();
+  }
   var walkingSound = this.sound.add('walk');
   walkingSound.volume = 0.1;
   walkingSound.loop = true;
@@ -271,11 +275,14 @@ function create() {
     }
   }
   // GENERATION D'ITEMS
-  generateItem('tree0', 6, randomNumber(15, 30), 450, true, -9, catGround);
-  generateItem('bush0', 3, randomNumber(8, 16), 620, true, -6, catGround);
-  generateItem('grass0', 4, randomNumber(10, 30), 648, true, 3, catGround);
-  generateItem('camp0', 1, 1, 628, false, -1, catGround);
-  generateItem('firebase0', 1, 1, 645, false, -1, catGround);
+  if (!devMod) {
+    generateItem('tree0', 6, randomNumber(15, 30), 450, true, -9, catGround);
+    generateItem('bush0', 3, randomNumber(8, 16), 620, true, -6, catGround);
+    generateItem('grass0', 4, randomNumber(10, 30), 648, true, 3, catGround);
+    generateItem('camp0', 1, 1, 628, false, -1, catGround);
+    generateItem('firebase0', 1, 1, 645, false, -1, catGround);
+  }
+
 
   // DEFINITION CATEGORIES COLLIDERS
   catZ = this.matter.world.nextCategory();
