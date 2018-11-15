@@ -5,9 +5,12 @@ var worldLength = 3000;
 var gravityG = 1;
 var zombiesPop = 20;
 
+var textInfo;
+
 var catZ;
 var catGround;
 var catBullet;
+
 // CONFIGURATION PHASER
 var config = {
   type: Phaser.AUTO, width: 1200, height: 600,
@@ -61,6 +64,7 @@ var clientIsMaster = false;
 
 // PRELOADER
 function preload() {
+  resizeWindow();
   //this.load.json('jsonData', 'assets/data/map.json');
   this.load.spritesheet('character', 'assets/player.png', { frameWidth: 90, frameHeight: 100 });
   this.load.spritesheet('zombie01', 'assets/Z.png', { frameWidth: 90, frameHeight: 100 });
@@ -92,6 +96,7 @@ function preload() {
   this.load.image('fence02', 'assets/fence02.png');
 
 
+  textInfo = this.add.text(600, 300, 'Loading...', { font: '25px Courier', fill: '#85bb13' });
 
   this.load.audio('pistolshot', ['assets/audio/pistolshot.wav']);
   this.load.audio('alarm', ['assets/audio/alarm.wav']);
@@ -101,10 +106,13 @@ function preload() {
   this.load.audio('z01', ['assets/audio/z01.wav']);
   this.load.audio('z02', ['assets/audio/z02.wav']);
   this.load.audio('z03', ['assets/audio/z03.wav']);
+
+
 }
 
 // LAUNCHER
 function create() {
+  textInfo.setText('');
   //console.log(this.cache.json.get('jsonData'));
   var self = this;
   this.socket = io();
