@@ -1,9 +1,9 @@
 // VARIABLES DE CONFIG
 var speed = 1;
 var jumpForce = 6;
-var worldLength = 2000;
+var worldLength = 3000;
 var gravityG = 1;
-var zombiesPop = 6;
+var zombiesPop = 100;
 
 var devMod = true;
 
@@ -695,7 +695,12 @@ function zGeneration(self){
      oneZ.play('zwalking');
      oneZ.setExistingBody(compoundBody);
      oneZ.setCollisionCategory(catZ);
-     oneZ.setPosition(0, 600);
+     var distribution = randomNumber(0,3);
+     if (distribution == 0) {
+       oneZ.setPosition(worldLength, 600);
+     } else {
+       oneZ.setPosition(0, 600);
+     }
      oneZ.setFixedRotation();
      oneZ.setMass(10);
      oneZ.setCollidesWith([ catGround, catBullet ]);
@@ -713,7 +718,7 @@ function zGeneration(self){
      this.zArray.push(oneZ);
       iZ++;
       if (iZ < zombiesPop) { this.zGeneration(self); }
-   }, randomNumber(200,200));
+   }, randomNumber(200,1000));
 }
 
 // Ajout d'autres nouveaux joueurs /////////////////////////////////////////////
@@ -741,7 +746,7 @@ function destroyZombie(id){
       index = i;
     }
   }
-  console.log('destroy Z : ' + index);
+  //console.log('destroy Z : ' + index);
   zArray[index].destroy();
   zArray.splice(index, 1);
 }
