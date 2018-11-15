@@ -99,6 +99,9 @@ function preload() {
   this.load.image('megaphone01', 'assets/megaphone01.png');
   this.load.image('firebase01', 'assets/firebase01.png');
   // AUDIO
+  this.load.audio('theme', ['assets/audio/theme.mp3']);
+  this.load.audio('walk', ['assets/audio/walk.wav']);
+  this.load.audio('run', ['assets/audio/run.wav']);
   this.load.audio('pistolshot', ['assets/audio/pistolshot.wav']);
   this.load.audio('alarm', ['assets/audio/alarm.wav']);
   this.load.audio('rain', ['assets/audio/rain.wav']);
@@ -198,6 +201,16 @@ function create() {
   this.matter.world.setBounds(0, 0, worldLength, 1000);
 
   // SONS
+  var themeSound = this.sound.add('theme');
+  themeSound.volume = 0.1;
+  themeSound.play();
+  themeSound.loop = true;
+  var walkingSound = this.sound.add('walk');
+  walkingSound.volume = 0.5;
+  walkingSound.loop = true;
+  var runningSound = this.sound.add('run');
+  runningSound.volume = 0.5;
+  runningSound.loop = true;
   var pistolShot = this.sound.add('pistolshot');
   pistolShot.volume = 0.2;
   var rainSound = this.sound.add('rain');
@@ -359,6 +372,27 @@ function create() {
   keyDown = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
   keyUpSpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
+  this.input.keyboard.on('keydown', function (event) {
+    if (event.key == 'q' || event.key == 'd') {
+      runningSound.stop();
+      walkingSound.play();
+    } else if (event.key == 'Shift') {
+      walkingSound.stop();
+      runningSound.play();
+    }
+  });
+
+  this.input.keyboard.on('keyup', function (event) {
+    if (event.key == 'q' || event.key == 'd') {
+      walkingSound.stop();
+    }
+    if (event.key == 'Shift') {
+      // PROBLEME - son //
+      //walkingSound.play();
+      runningSound.stop();
+    }
+  });
+
   // JUMP (space)
   this.input.keyboard.on('keydown_SPACE', function (event) {
     self.character.setVelocityY( - jumpForce);
@@ -455,6 +489,7 @@ function create() {
 
 // UPDATE //////////////////////////////////////////////////////////////////////
 function update(time, delta) {
+  var self = this;
   var slideCamera = this.cameras.main._scrollX;
   var zombiesNumber = zArray.length;
   background.setPosition(slideCamera, 0);
@@ -463,7 +498,7 @@ function update(time, delta) {
   if (this.character) {
     if (!gameStarted) {
       if (this.character.x > 600) {
-        console.log('Game Started');
+        //console.log('Game Started');
         var alarmSound = this.sound.add('alarm');
         alarmSound.volume = 0.5;
         alarmSound.play();
