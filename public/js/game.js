@@ -5,6 +5,9 @@ var worldLength = 3000;
 var gravityG = 1;
 var zombiesPop = 20;
 
+var catZ;
+var catGround;
+var catBullet;
 // CONFIGURATION PHASER
 var config = {
   type: Phaser.AUTO, width: 1200, height: 600,
@@ -15,7 +18,10 @@ var config = {
           gravity: { y: gravityG }
       },
       arcade: { gravity: { y: gravityG }, debug: false }
-  }
+  },
+  extend: {
+            zGeneration: zGeneration,
+        }
  }
 };
 
@@ -171,13 +177,16 @@ function create() {
   var megaPhoneElt = this.add.image(0, 0, 'megaphone01');
   megaPhoneElt.setPosition(600,520);
   var fenceStart = this.add.image(0, 0, 'fence01');
-  fenceStart.setPosition(200,550);
+  fenceStart.setPosition(60,580);
+  var fenceStart2 = this.add.image(0, 0, 'fence01');
+  fenceStart2.setPosition(400,580);
 
   background.setDepth(-10);
   fog.setDepth(-9);
   rainning.setDepth(-8);
   bottomMask.setDepth(-7);
-  fenceStart.setDepth(-7)
+  fenceStart.setDepth(-7);
+  fenceStart2.setDepth(-7);
   megaPhoneElt.setDepth(-6);
   //0
   fog2.setDepth(1);
@@ -274,9 +283,10 @@ function create() {
 
 
 
-  var catZ = this.matter.world.nextCategory();
-  var catGround = this.matter.world.nextCategory();
-  var catBullet = this.matter.world.nextCategory();
+  catZ = this.matter.world.nextCategory();
+  catGround = this.matter.world.nextCategory();
+  catBullet = this.matter.world.nextCategory();
+  //console.log(catGround);
 
   //GROUND GENERATION
   for (var i = 0; i < baseGroundLength; i++){
@@ -360,7 +370,7 @@ function create() {
 
 
   // Generation de Z
-  var i = 0;
+  /*var i = 0;
   function generateZ () {
 
      setTimeout(function () {
@@ -401,8 +411,9 @@ function create() {
            generateZ();
         }
      }, randomNumber(200,200))
-  }
-  generateZ();
+  }*/
+  //generateZ();
+  //self.zGeneration();
 
 
 
@@ -588,6 +599,54 @@ function animComplete(animation, frame){
   }
 }
 
+var iZ = 0;
+function zGeneration(self){
+
+
+
+   setTimeout(function () {
+     var Bodies = Phaser.Physics.Matter.Matter.Bodies;
+     //Matter.Bodies.rectangle(x, y, width, height, [options])
+     var rect = Bodies.rectangle(0, 75, 15, 60, { label: "zombieBody" });
+     var circleA = Bodies.circle(0, 40, 8, { label: "zombieHead" });//, { isSensor: true, label: 'head' });
+     var circleB = Bodies.circle(0, 10, 1, { label: "zombiePoint" });
+     var compoundBody = Phaser.Physics.Matter.Matter.Body.create({
+       parts: [ rect, circleA, circleB ]//,
+
+     });
+     //console.log('ok');
+     var oneZ = self.matter.add.sprite(0, 0, 'zombie01', null);
+
+     oneZ.play('zwalking');//.setOrigin(0, 0);
+     oneZ.setExistingBody(compoundBody);
+     oneZ.setCollisionCategory(catZ);
+     oneZ.setPosition(0, 600);
+
+     oneZ.setFixedRotation();
+     oneZ.setMass(10);
+     oneZ.setCollidesWith([ catGround, catBullet ]);
+     console.log(catGround);
+     oneZ.setData({
+       id: iZ,
+       life: 100,
+       level: 1,
+       speed: randomNumber(2, 5) * 0.3,
+       strength: randomNumber(5, 20),
+       armor: randomNumber(10, 20),
+       team: randomNumber(1, 2),
+       isAlive: true,
+       toDestroy: false
+     });
+
+     this.zArray.push(oneZ);
+      iZ++;
+      //console.log(iZ);
+      if (iZ < zombiesPop) {
+         this.zGeneration(self);
+      }
+   }, randomNumber(200,200))
+
+}
 /*function generateZ () {
   var i = 0;
    setTimeout(function () {
@@ -673,6 +732,7 @@ function update(time, delta) {
         alarmSound.volume = 0.5;
         alarmSound.play();
         //generateZ();
+        this.zGeneration(this);
         gameStarted = true;
       }
     }
