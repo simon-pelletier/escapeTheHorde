@@ -206,7 +206,7 @@ function create() {
   var themeSound = this.sound.add('theme');
   themeSound.volume = 0.1;
   themeSound.loop = true;
-  if (devMod) {
+  if (!devMod) {
     themeSound.play();
   }
   var walkingSound = this.sound.add('walk');
@@ -522,9 +522,9 @@ function update(time, delta) {
     for (var a = 0; a < zArray.length; a++){
       if (zArray[a].data.values.life <= 0 && zArray[a].data.values.isAlive == true) {
         zArray[a].anims.play('zdie', true);
+        zArray[a].on('animationcomplete', animComplete, self);
         zArray[a].setVelocityX(0);
         zArray[a].data.values.isAlive = false;
-        destroyZombie(a);
       }
     }
     // Z - AI
@@ -672,9 +672,12 @@ function update(time, delta) {
 }
 
 // QUAND L'ANIMATION EST COMPLETE //////////////////////////////////////////////
-function animComplete(animation, frame){
+function animComplete(animation, frame, e){
   if(animation.key === 'jumping'){
     isNotJumping = true;
+  }
+  if(animation.key === 'zdie'){
+    destroyZombie(e.data.values.id);
   }
 }
 
@@ -710,7 +713,7 @@ function zGeneration(self){
      this.zArray.push(oneZ);
       iZ++;
       if (iZ < zombiesPop) { this.zGeneration(self); }
-   }, randomNumber(200,200))
+   }, randomNumber(200,200));
 }
 
 // Ajout d'autres nouveaux joueurs /////////////////////////////////////////////
@@ -731,9 +734,14 @@ function zombiHitPlayer(p, z){
 }
 
 // Zombie Destructor ///////////////////////////////////////////////////////////
-function destroyZombie(a){
-  setTimeout(function() {
-    zArray[a].destroy();
-    zArray.splice(a, 1);
-  }, 1300);
+function destroyZombie(id){
+  var index;
+  for (var i = 0; i < zArray.length; i++){
+    if (id == zArray[i].data.values.id) {
+      index = i;
+    }
+  }
+  console.log('destroy Z : ' + index);
+  zArray[index].destroy();
+  zArray.splice(index, 1);
 }
