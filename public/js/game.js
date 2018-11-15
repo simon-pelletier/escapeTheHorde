@@ -3,13 +3,19 @@ var speed = 1;
 var jumpForce = 6;
 var worldLength = 3000;
 var gravityG = 1;
-var zombiesPop = 100;
+var zombiesPop = 50;
 
-var devMod = true;
+var devMod = false;
 
 // CONFIG PHASER
 var config = {
-  type: Phaser.AUTO, width: 1200, height: 600,
+  type: Phaser.AUTO, //width: 1200, height: 600,
+  scale: {
+        width: 1200,
+        height: 600,
+        scale: 'SHOW_ALL',
+        orientation: 'LANDSCAPE'
+    },
   //physics: { default: 'arcade', arcade: { gravity: { y: gravityG }, debug: false } },
   scene: { preload: preload, create: create, update: update, physics: {
       matter: {
@@ -21,7 +27,9 @@ var config = {
   extend: {
             zGeneration: zGeneration,
         }
- }
+ },
+ title: 'Escape the Horde',
+ version: '1.0'
 };
 
 // VARIABLES ELEMENTS
@@ -41,6 +49,7 @@ var keyDash;
 
 //VARIABLES CATEGORIES
 var catZ;
+var catPlayer;
 var catGround;
 var catBullet;
 
@@ -59,8 +68,8 @@ var goToTheRight = true;
 var lookToTheRight = true;
 var playersNumber = 0;
 var clientPlayer;
-var clientPlayerLife;
-var clientPlayerName;
+/*var clientPlayerLife;
+var clientPlayerName;*/
 var clientIsMaster = false;
 
 // PRELOAD /////////////////////////////////////////////////////////////////////
@@ -274,6 +283,7 @@ function create() {
       item.setDepth( depth );
     }
   }
+
   // GENERATION D'ITEMS
   if (!devMod) {
     generateItem('tree0', 6, randomNumber(15, 30), 450, true, -9, catGround);
@@ -283,9 +293,9 @@ function create() {
     generateItem('firebase0', 1, 1, 645, false, -1, catGround);
   }
 
-
   // DEFINITION CATEGORIES COLLIDERS
   catZ = this.matter.world.nextCategory();
+  catPlayer = this.matter.world.nextCategory();
   catGround = this.matter.world.nextCategory();
   catBullet = this.matter.world.nextCategory();
 
@@ -330,12 +340,20 @@ function create() {
           parts: [ rect ],
           inertia: Infinity
         });
-        clientPlayer = players[id];
-        clientPlayerLife = players[id].playerLife;
-        clientPlayerName = players[id].playerName;
+
         self.character = self.matter.add.sprite(players[id].x, players[id].y, 'character');
         self.character.setExistingBody(compoundBodyPlayer);
         self.character.setPosition(300, 500);
+        self.character.setCollisionCategory(catPlayer);
+        self.character.setData({
+          id: id,
+          name: players[id].playerName,
+          life: 100,
+          level: 1,
+          strength: 1,
+          armor: 1
+        });
+        clientPlayer = self.character;
         self.cameras.main.startFollow(self.character, true, 0.05, 0.05, 0, 20);
       } else {
         playersNumber++;
@@ -456,12 +474,15 @@ function create() {
     pistolShot.play();
   }, this);
 
+  var intervalAttacking;
+
   // COLLISIONS !!!
   this.matter.world.on('collisionstart', function (event) {
     var pairs = event.pairs;
     for (var i = 0; i < pairs.length; i++){
       var bodyA = pairs[i].bodyA;
       var bodyB = pairs[i].bodyB;
+
         // Si on a à faire au collider zombie
         if (bodyA.label === 'zombieBody' || bodyA.label === 'zombieHead') {
           // Détruit la bullet
@@ -486,7 +507,54 @@ function create() {
             }
           } else if (bodyA.gameObject.data.values.toDestroy === false){
           }
-          //console.log(bodyA.gameObject.data.values.life);
+        }
+
+        if (pairs[i].isSensor) {
+          var zombieHiter;
+          var playerBody;
+          if (bodyB.isSensor){
+            zombieHiter = bodyB;
+            playerBody = bodyA;
+          }
+          else if (bodyA.isSensor){
+            zombieHiter = bodyA;
+            playerBody = bodyB;
+          }
+          if (zombieHiter.label === 'right' || zombieHiter.label === 'left' && zombieHiter.gameObject.data.values.isAttacking == false){
+            zombieHiter.gameObject.data.values.isAttacking = true;
+            zombieHiter.gameObject.anims.play('zattack');
+            zombieHiter.gameObject.on('animationcomplete', animComplete, self);
+            intervalAttacking = setInterval(function(){
+              //console.log(playerBody.gameObject.data.values.life);
+              playerBody.gameObject.data.values.life += - zombieHiter.gameObject.data.values.strength;
+            }, 1300);
+          }
+        }
+
+      }
+    });
+
+    this.matter.world.on('collisionend', function (event) {
+      var pairs = event.pairs;
+      for (var i = 0; i < pairs.length; i++){
+        var bodyA = pairs[i].bodyA;
+        var bodyB = pairs[i].bodyB;
+        if (pairs[i].isSensor) {
+          var zombieHiter;
+          var playerBody;
+          if (bodyB.isSensor){
+            zombieHiter = bodyB;
+            playerBody = bodyA;
+          }
+          else if (bodyA.isSensor){
+            zombieHiter = bodyA;
+            playerBody = bodyB;
+          }
+          if (zombieHiter.label === 'right' || zombieHiter.label === 'left'){
+            clearInterval(intervalAttacking);
+            zombieHiter.gameObject.data.values.isAttacking = false;
+            zombieHiter.gameObject.anims.play('zwalking');
+          }
         }
       }
     });
@@ -502,14 +570,21 @@ function update(time, delta) {
   var zombiesNumber = zArray.length;
   background.setPosition(slideCamera, 0);
 
+
+
   // START LAUNCHER
   if (this.character) {
+    if (this.character.data.values.life <= 0) {
+      game.scene.restart();
+    }
     if (!gameStarted) {
       if (this.character.x > 600) {
         //console.log('Game Started');
-        var alarmSound = this.sound.add('alarm');
-        alarmSound.volume = 0.5;
-        alarmSound.play();
+        if (!devMod) {
+          var alarmSound = this.sound.add('alarm');
+          alarmSound.volume = 0.5;
+          alarmSound.play();
+        }
         this.zGeneration(this);
         gameStarted = true;
       }
@@ -532,7 +607,7 @@ function update(time, delta) {
     for (var z = 0; z < zArray.length; z++){
         var horizontalRange = (zArray[z].x ) - this.character.x;
         var verticalRange = (zArray[z].y ) - this.character.y;
-        if (zArray[z].data.values.isAlive == true) {
+        if (zArray[z].data.values.isAlive == true && zArray[z].data.values.isAttacking == false) {
           if (verticalRange > 80) {
             if (horizontalRange > 45 || verticalRange < 80) {
               zArray[z].setVelocityX( - zArray[z].data.values.speed * speed);
@@ -562,20 +637,6 @@ function update(time, delta) {
       }
     }
   }
-
-  // ORIENTATION JOUEUR
-  /*if (this.character) {
-    var pointer = game.input.mousePointer;
-    var slide = this.input.mousePointer.worldX - pointer.x;
-    var slideY = this.input.mousePointer.worldY - pointer.y;
-    if (this.character.x > (pointer.x + slide)){
-      this.character.flipX = true;
-      this.lookToTheRight = false;
-    } else {
-      this.character.flipX = false;
-      this.lookToTheRight = true;
-    }
-  }*/
 
   // DEPLACEMENTS JOUEUR (self)
   var self_player = this.character;
@@ -658,13 +719,13 @@ function update(time, delta) {
     if (clientPlayer) {
       timeText.setText(
         'Time: ' + time.toFixed(0) +
-        '\nDelta: ' + delta.toFixed(2) +
+        //'\nDelta: ' + delta.toFixed(2) +
         '\nLevel: --' +
         '\nPlayers Number: ' + playersNumber +
         '\nZombies Number: ' + zombiesNumber +
         '\nMaster: ' + clientIsMaster +
-        '\nPlayer Name: ' + clientPlayerName +
-        '\nPlayer Life: ' + clientPlayer.playerLife);
+        '\nPlayer Name: ' + clientPlayer.data.values.name +
+        '\nPlayer Life: ' + clientPlayer.data.values.life);
         timeText.x = slideCamera +100;
     }
 
@@ -679,6 +740,10 @@ function animComplete(animation, frame, e){
   if(animation.key === 'zdie'){
     destroyZombie(e.data.values.id);
   }
+  if(animation.key === 'zattack'){
+    e.data.values.isAttacking = false;
+    e.anims.play('zwalking');
+  }
 }
 
 // GENERATION DE Z /////////////////////////////////////////////////////////////
@@ -688,14 +753,19 @@ function zGeneration(self){
      var rect = Bodies.rectangle(0, 75, 15, 60, { label: "zombieBody" });
      var circleA = Bodies.circle(0, 40, 8, { label: "zombieHead" });//, { isSensor: true, label: 'head' });
      var circleB = Bodies.circle(0, 10, 1, { label: "zombiePoint" });
+     var circleC = Bodies.circle(15, 50, 5, { isSensor: true, label: 'right' });
+     var circleD = Bodies.circle(-15, 50, 5, { isSensor: true, label: 'left' });
      var compoundBody = Phaser.Physics.Matter.Matter.Body.create({
-       parts: [ rect, circleA, circleB ]//,
+       parts: [ rect, circleA, circleB, circleC, circleD ]//,
      });
      var oneZ = self.matter.add.sprite(0, 0, 'zombie01', null);
      oneZ.play('zwalking');
      oneZ.setExistingBody(compoundBody);
      oneZ.setCollisionCategory(catZ);
-     var distribution = randomNumber(0,3);
+
+     if (!devMod) {
+       var distribution = randomNumber(0,3);
+     } else { var distribution = 1; }
      if (distribution == 0) {
        oneZ.setPosition(worldLength, 600);
      } else {
@@ -703,7 +773,7 @@ function zGeneration(self){
      }
      oneZ.setFixedRotation();
      oneZ.setMass(10);
-     oneZ.setCollidesWith([ catGround, catBullet ]);
+     oneZ.setCollidesWith([ catGround, catBullet, catPlayer ]);
      oneZ.setData({
        id: iZ,
        life: 100,
@@ -713,6 +783,7 @@ function zGeneration(self){
        armor: randomNumber(10, 20),
        team: randomNumber(1, 2),
        isAlive: true,
+       isAttacking: false,
        toDestroy: false
      });
      this.zArray.push(oneZ);
@@ -726,16 +797,6 @@ function addOtherPlayers(self, playerInfo) {
   const otherPlayer = self.add.sprite(playerInfo.x, playerInfo.y, 'character').setOrigin(0, 0);//.setDisplaySize(53, 40);
   otherPlayer.playerId = playerInfo.playerId;
   self.otherPlayers.add(otherPlayer);
-}
-
-// Quand un zombie touche le joueur ////////////////////////////////////////////
-function zombiHitPlayer(p, z){
-  //console.log(p);
-  clientPlayer.playerLife--;
-  //console.log(clientPlayer.playerLife);
-  if (clientPlayer.playerLife < 0) {
-    //console.log('DEAD');
-  }
 }
 
 // Zombie Destructor ///////////////////////////////////////////////////////////
