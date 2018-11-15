@@ -1,9 +1,9 @@
 // VARIABLES DE CONFIG
 var speed = 1;
 var jumpForce = 6;
-var worldLength = 3000;
+var worldLength = 2000;
 var gravityG = 1;
-var zombiesPop = 20;
+var zombiesPop = 6;
 
 // CONFIG PHASER
 var config = {
@@ -206,10 +206,10 @@ function create() {
   themeSound.play();
   themeSound.loop = true;
   var walkingSound = this.sound.add('walk');
-  walkingSound.volume = 0.5;
+  walkingSound.volume = 0.1;
   walkingSound.loop = true;
   var runningSound = this.sound.add('run');
-  runningSound.volume = 0.5;
+  runningSound.volume = 0.1;
   runningSound.loop = true;
   var pistolShot = this.sound.add('pistolshot');
   pistolShot.volume = 0.2;
@@ -218,11 +218,11 @@ function create() {
   rainSound.play();
   rainSound.loop = true;
   var coucouSound = this.sound.add('coucou');
-  coucouSound.volume = 0.5;
+  coucouSound.volume = 0.4;
   coucouSound.play();
   coucouSound.loop = true;
   var cricketsSound = this.sound.add('crickets');
-  cricketsSound.volume = 0.2;
+  cricketsSound.volume = 0.3;
   cricketsSound.play();
   cricketsSound.loop = true;
 
@@ -449,6 +449,7 @@ function create() {
     pistolShot.play();
   }, this);
 
+  // COLLISIONS !!!
   this.matter.world.on('collisionstart', function (event) {
     var pairs = event.pairs;
     for (var i = 0; i < pairs.length; i++){
@@ -554,6 +555,20 @@ function update(time, delta) {
       }
     }
   }
+
+  // ORIENTATION JOUEUR
+  /*if (this.character) {
+    var pointer = game.input.mousePointer;
+    var slide = this.input.mousePointer.worldX - pointer.x;
+    var slideY = this.input.mousePointer.worldY - pointer.y;
+    if (this.character.x > (pointer.x + slide)){
+      this.character.flipX = true;
+      this.lookToTheRight = false;
+    } else {
+      this.character.flipX = false;
+      this.lookToTheRight = true;
+    }
+  }*/
 
   // DEPLACEMENTS JOUEUR (self)
   var self_player = this.character;
