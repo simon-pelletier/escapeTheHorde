@@ -5,7 +5,7 @@ var worldLength = 3000;
 var gravityG = 1;
 var zombiesPop = 50;
 
-var devMod = true;
+var devMod = false;
 
 // CONFIG PHASER
 var config = {
