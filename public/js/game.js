@@ -456,7 +456,10 @@ function create() {
       var slideY = self.input.mousePointer.worldY - pointer.y;
       var characterPoint = new Phaser.Geom.Point(self.character.x - slide, self.character.y - slideY);
       var angle = BetweenPoints(characterPoint, pointer);
-      weaponCurrentPlayer.rotation = angle;
+      if (angle > -0.5 || angle < -2.5) {
+        weaponCurrentPlayer.rotation = angle;
+      }
+      //console.log(angle);
       var slide = self.input.mousePointer.worldX - pointer.x;
       var slideY = self.input.mousePointer.worldY - pointer.y;
       if (self.character.x > (pointer.x + slide)){
@@ -481,23 +484,26 @@ function create() {
       var slideY = self.input.mousePointer.worldY - pointer.y;
       var characterPoint = new Phaser.Geom.Point(self.character.x - slide, self.character.y - slideY);
       var angle = BetweenPoints(characterPoint, pointer);
-      weaponCurrentPlayer.rotation = angle;
+      if (angle > -0.5 || angle < -2.5) {
+        weaponCurrentPlayer.rotation = angle;
+      } else {
+        if (angle > -1.55) {
+          angle = -0.5;
+        } else {
+          angle = -2.5;
+        }
+
+      }
       velocityFromRotation(angle, 30, velocity);
       var Bodies = Phaser.Physics.Matter.Matter.Bodies;
       var rect = Bodies.rectangle(0, 0, 2, 2, { label: "bulletBody" });
-      var compoundBodyBullet = Phaser.Physics.Matter.Matter.Body.create({
-        parts: [ rect ]
-      });
+      var compoundBodyBullet = Phaser.Physics.Matter.Matter.Body.create({ parts: [ rect ] });
       var bullet = self.matter.add.sprite(0, 0, 'bullet', null);
       bullet.setExistingBody(compoundBodyBullet);
       bullet.setPosition(self.character.x, self.character.y - 10);
       bullet.setVelocity(velocity.x, velocity.y);
       bullet.setCollisionCategory(catBullet);
       bullet.setCollidesWith([ catZ ]);
-      /*bullet.setData({
-        life: 100,
-        level: 1
-      });*/
     }
     setTimeout(function() {
       bullet.destroy();
@@ -802,7 +808,9 @@ function zGeneration(self){
 
      if (!devMod) {
        var distribution = randomNumber(0,3);
-     } else { var distribution = 1; }
+     } else {
+       var distribution = 1;
+     }
      if (distribution == 0) {
        oneZ.setPosition(worldLength, 600);
      } else {
