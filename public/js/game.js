@@ -5,7 +5,7 @@ var worldLength = 3000;
 var gravityG = 1;
 var zombiesPop = 50;
 
-var devMod = false;
+var devMod = true;
 
 // CONFIG PHASER
 var config = {
@@ -68,6 +68,7 @@ var goToTheRight = true;
 var lookToTheRight = true;
 var playersNumber = 0;
 var clientPlayer;
+var weaponCurrentPlayer;
 /*var clientPlayerLife;
 var clientPlayerName;*/
 var clientIsMaster = false;
@@ -109,6 +110,7 @@ function preload() {
   this.load.image('bg01', 'assets/bg01.png');
   this.load.image('megaphone01', 'assets/megaphone01.png');
   this.load.image('firebase01', 'assets/firebase01.png');
+  this.load.image('weapon01', 'assets/weapon01.png');
   // AUDIO
   this.load.audio('theme', ['assets/audio/theme.mp3']);
   this.load.audio('walk', ['assets/audio/walk.wav']);
@@ -130,7 +132,11 @@ function create() {
   this.socket = io();
   textInfo.setText('');
   this.matter.world.setBounds();
-  this.input.setDefaultCursor('url(assets/sight.cur), pointer');
+  if (!devMod) {
+    this.input.setDefaultCursor('url(assets/cur.cur), pointer');
+  } else {
+    this.input.setDefaultCursor('url(assets/sight.cur), pointer');
+  }
   timeText = this.add.text(100, 200);
 
   // Background
@@ -145,46 +151,50 @@ function create() {
   bottomMask.fillRect(0, 700, worldLength, 300);
 
   // PARTICLES RAIN & FOG
-  var rainning = this.add.particles('rain');
-  rainning.createEmitter({
-    x: { min: 0, max: worldLength },
-    y: { min: 0, max: 1000 },
-    lifespan: 5000,
-    speedX: { min: -20, max: 20 },
-    speedY: { min: 500, max: 900 },
-    scale: { start: 0.5, end: 0.1 },
-    quantity: 5,
-    frequency: 30,
-    blendMode: 'ADD'
-  });
-  var fog = this.add.particles('fog');
-  fog.createEmitter({
-    x: { min: 0, max: worldLength },
-    y: { min: 900, max: 900 },
-    lifespan: 9000,
-    speedX: { min: 5, max: 100 },
-    speedY: { min: -1, max: -3 },
-    scale: { start: 1, end: 2 },
-    rotate: { min: -40, max: 40 },
-    alpha: { start: 0.2, end: 0, ease: 'Quad.easeIn' },
-    frequency: 150,
-    maxParticles: 100,
-    blendMode: 'ADD'
-  });
-  var fog2 = this.add.particles('fog');
-  fog2.createEmitter({
-    x: { min: 0, max: worldLength },
-    y: { min: 900, max: 900 },
-    lifespan: 9000,
-    speedX: { min: 5, max: 10 },
-    speedY: { min: -1, max: -3 },
-    scale: { start: 0.5, end: 2 },
-    rotate: { min: -40, max: 40 },
-    alpha: { start: 0.2, end: 0, ease: 'Quad.easeIn' },
-    frequency: 100,
-    maxParticles: 100,
-    blendMode: 'ADD'
-  });
+  if (!devMod) {
+    var rainning = this.add.particles('rain');
+    rainning.createEmitter({
+      x: { min: 0, max: worldLength },
+      y: { min: 0, max: 1000 },
+      lifespan: 5000,
+      speedX: { min: -20, max: 20 },
+      speedY: { min: 500, max: 900 },
+      scale: { start: 0.5, end: 0.1 },
+      quantity: 5,
+      frequency: 30,
+      blendMode: 'ADD'
+    });
+    var fog = this.add.particles('fog');
+    fog.createEmitter({
+      x: { min: 0, max: worldLength },
+      y: { min: 900, max: 900 },
+      lifespan: 9000,
+      speedX: { min: 5, max: 100 },
+      speedY: { min: -1, max: -3 },
+      scale: { start: 1, end: 2 },
+      rotate: { min: -40, max: 40 },
+      alpha: { start: 0.2, end: 0, ease: 'Quad.easeIn' },
+      frequency: 150,
+      maxParticles: 100,
+      blendMode: 'ADD'
+    });
+    var fog2 = this.add.particles('fog');
+    fog2.createEmitter({
+      x: { min: 0, max: worldLength },
+      y: { min: 900, max: 900 },
+      lifespan: 9000,
+      speedX: { min: 5, max: 10 },
+      speedY: { min: -1, max: -3 },
+      scale: { start: 0.5, end: 2 },
+      rotate: { min: -40, max: 40 },
+      alpha: { start: 0.2, end: 0, ease: 'Quad.easeIn' },
+      frequency: 100,
+      maxParticles: 100,
+      blendMode: 'ADD'
+    });
+  }
+
+
 
   // GRAPHISME START ZONE
   var megaPhoneElt = this.add.image(0, 0, 'megaphone01');
@@ -196,13 +206,16 @@ function create() {
 
   // PROFONDEURS (z-index)
   background.setDepth(-10);
-  fog.setDepth(-9);
-  rainning.setDepth(-8);
+  if (!devMod) {
+    fog.setDepth(-9);
+    rainning.setDepth(-8);
+    fog2.setDepth(1);
+  }
   bottomMask.setDepth(-7);
   fenceStart.setDepth(-7);
   fenceStart2.setDepth(-7);
   megaPhoneElt.setDepth(-6);
-  fog2.setDepth(1);
+
 
   // Déclaration de groupes ???
   this.otherPlayers = this.add.group();
@@ -215,9 +228,7 @@ function create() {
   var themeSound = this.sound.add('theme');
   themeSound.volume = 0.1;
   themeSound.loop = true;
-  if (!devMod) {
-    themeSound.play();
-  }
+
   var walkingSound = this.sound.add('walk');
   walkingSound.volume = 0.1;
   walkingSound.loop = true;
@@ -228,16 +239,20 @@ function create() {
   pistolShot.volume = 0.2;
   var rainSound = this.sound.add('rain');
   rainSound.volume = 0.2;
-  rainSound.play();
   rainSound.loop = true;
   var coucouSound = this.sound.add('coucou');
   coucouSound.volume = 0.4;
-  coucouSound.play();
   coucouSound.loop = true;
   var cricketsSound = this.sound.add('crickets');
   cricketsSound.volume = 0.3;
-  cricketsSound.play();
   cricketsSound.loop = true;
+
+  if (!devMod) {
+    themeSound.play();
+    rainSound.play();
+    coucouSound.play();
+    cricketsSound.play();
+  }
 
   // Z SOUNDS (random)
 
@@ -336,6 +351,9 @@ function create() {
         }
         var Bodies = Phaser.Physics.Matter.Matter.Bodies;
         var rect = Bodies.rectangle(0, 0, 40, 100);
+        weaponCurrentPlayer = self.add.image(200, 600, 'weapon01', null, { isStatic: true });
+        weaponCurrentPlayer.setDepth(1);
+        weaponCurrentPlayer.setOrigin(0.3, 0.5);
         var compoundBodyPlayer = Phaser.Physics.Matter.Matter.Body.create({
           parts: [ rect ],
           inertia: Infinity
@@ -399,6 +417,7 @@ function create() {
 
   this.input.keyboard.on('keydown', function (event) {
     if (event.key == 'q' || event.key == 'd') {
+      weaponCurrentPlayer.setOrigin(-0.1, 0.5);
       runningSound.stop();
       walkingSound.play();
     } else if (event.key == 'Shift') {
@@ -409,6 +428,7 @@ function create() {
 
   this.input.keyboard.on('keyup', function (event) {
     if (event.key == 'q' || event.key == 'd') {
+      weaponCurrentPlayer.setOrigin(0.3, 0.5);
       walkingSound.stop();
     }
     if (event.key == 'Shift') {
@@ -429,12 +449,22 @@ function create() {
   // POINTER MOVE
   this.input.on('pointermove', function (pointer) {
     if (self.character) {
+      var BetweenPoints = Phaser.Math.Angle.BetweenPoints;
+      var velocity = new Phaser.Math.Vector2();
+      //var velocityFromRotation = this.physics.velocityFromRotation;
+      var slide = self.input.mousePointer.worldX - pointer.x;
+      var slideY = self.input.mousePointer.worldY - pointer.y;
+      var characterPoint = new Phaser.Geom.Point(self.character.x - slide, self.character.y - slideY);
+      var angle = BetweenPoints(characterPoint, pointer);
+      weaponCurrentPlayer.rotation = angle;
       var slide = self.input.mousePointer.worldX - pointer.x;
       var slideY = self.input.mousePointer.worldY - pointer.y;
       if (self.character.x > (pointer.x + slide)){
         self.character.flipX = true;
+        weaponCurrentPlayer.flipY = true;
         self.lookToTheRight = false;
       } else {
+        weaponCurrentPlayer.flipY = false;
         self.character.flipX = false;
         self.lookToTheRight = true;
       }
@@ -451,6 +481,7 @@ function create() {
       var slideY = self.input.mousePointer.worldY - pointer.y;
       var characterPoint = new Phaser.Geom.Point(self.character.x - slide, self.character.y - slideY);
       var angle = BetweenPoints(characterPoint, pointer);
+      weaponCurrentPlayer.rotation = angle;
       velocityFromRotation(angle, 30, velocity);
       var Bodies = Phaser.Physics.Matter.Matter.Bodies;
       var rect = Bodies.rectangle(0, 0, 2, 2, { label: "bulletBody" });
@@ -459,7 +490,7 @@ function create() {
       });
       var bullet = self.matter.add.sprite(0, 0, 'bullet', null);
       bullet.setExistingBody(compoundBodyBullet);
-      bullet.setPosition(self.character.x, self.character.y);
+      bullet.setPosition(self.character.x, self.character.y - 10);
       bullet.setVelocity(velocity.x, velocity.y);
       bullet.setCollisionCategory(catBullet);
       bullet.setCollidesWith([ catZ ]);
@@ -574,8 +605,10 @@ function update(time, delta) {
 
   // START LAUNCHER
   if (this.character) {
+
     if (this.character.data.values.life <= 0) {
-      game.scene.restart();
+      //game.scene.restart();
+      console.log('GAME OVER');
     }
     if (!gameStarted) {
       if (this.character.x > 600) {
@@ -641,6 +674,8 @@ function update(time, delta) {
   // DEPLACEMENTS JOUEUR (self)
   var self_player = this.character;
   if (this.character) {
+    weaponCurrentPlayer.x = this.character.x;
+    weaponCurrentPlayer.y = this.character.y - 10;
     // LEFT
     if (this.cursors.left.isDown || keyLeft.isDown) {
       this.character.setVelocityX( - 2 * speed);
@@ -679,6 +714,8 @@ function update(time, delta) {
       }
     // IDLE
     } else {
+      //weaponCurrentPlayer.x = this.character.x - 20;
+      //weaponCurrentPlayer.y = this.character.y - 10;
       this.character.setVelocityX(0);
       if (isNotJumping) {
         this.character.anims.play('idle', true);
