@@ -3,9 +3,9 @@ var speed = 1;
 var jumpForce = 6;
 var worldLength = 3000;
 var gravityG = 1;
-var zombiesPop = 50;
+var zombiesPop = 5;
 
-var devMod = false;
+var devMod = true;
 
 // CONFIG PHASER
 var config = {
@@ -132,11 +132,7 @@ function create() {
   this.socket = io();
   textInfo.setText('');
   this.matter.world.setBounds();
-  if (!devMod) {
-    this.input.setDefaultCursor('url(assets/cur.cur), pointer');
-  } else {
-    this.input.setDefaultCursor('url(assets/sight.cur), pointer');
-  }
+  this.input.setDefaultCursor('url(assets/cur2.cur), pointer');
   timeText = this.add.text(100, 200);
 
   // Background
@@ -355,17 +351,22 @@ function create() {
         weaponCurrentPlayer.setDepth(1);
         weaponCurrentPlayer.setOrigin(0.3, 0.5);
         var compoundBodyPlayer = Phaser.Physics.Matter.Matter.Body.create({
-          parts: [ rect ],
-          inertia: Infinity
+          parts: [ rect ]/*,
+          inertia: Infinity*/
         });
 
         self.character = self.matter.add.sprite(players[id].x, players[id].y, 'character');
         self.character.setExistingBody(compoundBodyPlayer);
         self.character.setPosition(300, 500);
+        self.character.setFixedRotation();
+        /*self.character.setMass(0.1);
+        self.character.setFriction(0.01);*/
+
         self.character.setCollisionCategory(catPlayer);
         self.character.setData({
           id: id,
           name: players[id].playerName,
+          score: 0,
           life: 100,
           level: 1,
           strength: 1,
@@ -502,6 +503,10 @@ function create() {
       bullet.setExistingBody(compoundBodyBullet);
       bullet.setPosition(self.character.x, self.character.y - 10);
       bullet.setVelocity(velocity.x, velocity.y);
+      bullet.setData({
+        id: 0002,
+        shooter: self.character.data.values.id
+      });
       bullet.setCollisionCategory(catBullet);
       bullet.setCollidesWith([ catZ ]);
     }
@@ -522,28 +527,41 @@ function create() {
 
         // Si on a à faire au collider zombie
         if (bodyA.label === 'zombieBody' || bodyA.label === 'zombieHead') {
-          // Détruit la bullet
-          bodyB.gameObject.destroy();
+          //console.log(bodyB.gameObject.data.values.id);
+          //console.log(clientPlayer.data.score);
+          //console.log(bodyA.gameObject.data.values.life);
           // Si la vie est au dessus de zero
           if (bodyA.gameObject.data.values.life > 0) {
             // Si c'est dans la tête
             if (bodyA.label === 'zombieHead') {
+              self.character.data.values.score += 10;
+              //console.log(self.character.data.score);
               bodyA.gameObject.data.values.life = 0;
               bodyA.gameObject.data.values.toDestroy = true;
+              //bodyA.gameObject.parent.isSensor();
+              //console.log(bodyA.gameObject);
+              bodyA.gameObject.body.destroy();
+
             // Si c'est dans le corps
           } else if ((bodyA.label === 'zombieBody')){
               bodyA.gameObject.data.values.life += -20;
               if (bodyA.gameObject.data.values.life > 0) {
+                self.character.data.values.score += 1;
                 bodyA.gameObject.anims.play('zhited');
                 setTimeout(function() {
                   bodyA.gameObject.anims.play('zwalking');
                 }, 300);
               } else {
+                self.character.data.values.score += 1;
+                bodyA.gameObject.data.values.life = 0;
                 bodyA.gameObject.data.values.toDestroy = true;
+                bodyA.gameObject.body.destroy();
               }
             }
           } else if (bodyA.gameObject.data.values.toDestroy === false){
           }
+          // Détruit la bullet
+          bodyB.gameObject.destroy();
         }
 
         if (pairs[i].isSensor) {
@@ -561,10 +579,10 @@ function create() {
             zombieHiter.gameObject.data.values.isAttacking = true;
             zombieHiter.gameObject.anims.play('zattack');
             zombieHiter.gameObject.on('animationcomplete', animComplete, self);
-            intervalAttacking = setInterval(function(){
+            /*intervalAttacking = setInterval(function(){
               //console.log(playerBody.gameObject.data.values.life);
               playerBody.gameObject.data.values.life += - zombieHiter.gameObject.data.values.strength;
-            }, 1300);
+            }, 1300);*/
           }
         }
 
@@ -588,7 +606,7 @@ function create() {
             playerBody = bodyB;
           }
           if (zombieHiter.label === 'right' || zombieHiter.label === 'left'){
-            clearInterval(intervalAttacking);
+            //clearInterval(intervalAttacking);
             zombieHiter.gameObject.data.values.isAttacking = false;
             zombieHiter.gameObject.anims.play('zwalking');
           }
@@ -763,12 +781,16 @@ function update(time, delta) {
       timeText.setText(
         'Time: ' + time.toFixed(0) +
         //'\nDelta: ' + delta.toFixed(2) +
-        '\nLevel: --' +
+        '\nLevel: dev' +
         '\nPlayers Number: ' + playersNumber +
         '\nZombies Number: ' + zombiesNumber +
         '\nMaster: ' + clientIsMaster +
         '\nPlayer Name: ' + clientPlayer.data.values.name +
-        '\nPlayer Life: ' + clientPlayer.data.values.life);
+        '\nPlayer Score: ' + clientPlayer.data.values.score +
+        '\nPlayer lvl: ' + clientPlayer.data.values.level +
+        '\nPlayer Life: ' + clientPlayer.data.values.life +
+        '\nWorld Length: ' + worldLength
+      );
         timeText.x = slideCamera +100;
     }
 
@@ -786,6 +808,7 @@ function animComplete(animation, frame, e){
   if(animation.key === 'zattack'){
     e.data.values.isAttacking = false;
     e.anims.play('zwalking');
+    this.character.data.values.life += - e.data.values.strength;
   }
 }
 
@@ -793,18 +816,31 @@ function animComplete(animation, frame, e){
 function zGeneration(self){
    setTimeout(function () {
      var Bodies = Phaser.Physics.Matter.Matter.Bodies;
-     var rect = Bodies.rectangle(0, 75, 15, 60, { label: "zombieBody" });
-     var circleA = Bodies.circle(0, 40, 8, { label: "zombieHead" });//, { isSensor: true, label: 'head' });
-     var circleB = Bodies.circle(0, 10, 1, { label: "zombiePoint" });
+     var rect = Bodies.rectangle(0, 75, 15, 60, { isSensor: true, label: "zombieBody" });
+     var circleA = Bodies.circle(0, 40, 8, { isSensor: true, label: "zombieHead" });//, { isSensor: true, label: 'head' });
+     var circleB = Bodies.circle(0, 10, 1, { isSensor: true, label: "zombiePoint" });
      var circleC = Bodies.circle(15, 50, 5, { isSensor: true, label: 'right' });
      var circleD = Bodies.circle(-15, 50, 5, { isSensor: true, label: 'left' });
      var compoundBody = Phaser.Physics.Matter.Matter.Body.create({
-       parts: [ rect, circleA, circleB, circleC, circleD ]//,
+       parts: [ rect, circleA, circleB, circleC, circleD ],
+       label: 'zBodyCompound'/*,
+       inertia: Infinity*/
      });
      var oneZ = self.matter.add.sprite(0, 0, 'zombie01', null);
      oneZ.play('zwalking');
      oneZ.setExistingBody(compoundBody);
      oneZ.setCollisionCategory(catZ);
+     oneZ.setIgnoreGravity(true);
+     /*oneZ.setFriction(5);
+     oneZ.setFrictionStatic(5);
+     oneZ.setMass(100);*/
+     /*
+     oneZ.frictionStatic = 1;
+     oneZ.friction = 1;
+     oneZ.mass = 200;
+     oneZ.frictionAir = 0.001;
+     oneZ.restitution = 0;
+     */
 
      if (!devMod) {
        var distribution = randomNumber(0,3);
@@ -814,10 +850,10 @@ function zGeneration(self){
      if (distribution == 0) {
        oneZ.setPosition(worldLength, 600);
      } else {
-       oneZ.setPosition(0, 600);
+       oneZ.setPosition(0, 620);
      }
      oneZ.setFixedRotation();
-     oneZ.setMass(10);
+    // oneZ.setMass(100);
      oneZ.setCollidesWith([ catGround, catBullet, catPlayer ]);
      oneZ.setData({
        id: iZ,
@@ -831,6 +867,7 @@ function zGeneration(self){
        isAttacking: false,
        toDestroy: false
      });
+     console.log(oneZ);
      this.zArray.push(oneZ);
       iZ++;
       if (iZ < zombiesPop) { this.zGeneration(self); }
