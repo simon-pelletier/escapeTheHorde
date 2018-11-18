@@ -548,9 +548,10 @@ function create() {
               if (bodyA.gameObject.data.values.life > 0) {
                 self.character.data.values.score += 1;
                 bodyA.gameObject.anims.play('zhited');
-                setTimeout(function() {
+                bodyA.gameObject.on('animationcomplete', animComplete, self);
+                /*setTimeout(function() {
                   bodyA.gameObject.anims.play('zwalking');
-                }, 300);
+                }, 300);*/
               } else {
                 self.character.data.values.score += 1;
                 bodyA.gameObject.data.values.life = 0;
@@ -564,7 +565,8 @@ function create() {
           bodyB.gameObject.destroy();
         }
 
-        if (pairs[i].isSensor) {
+        // Si on a à faire au sensor right ou left
+        if (bodyA.label === 'right' || bodyA.label === 'left' || bodyB.label === 'right' || bodyB.label === 'left') {
           var zombieHiter;
           var playerBody;
           if (bodyB.isSensor){
@@ -589,6 +591,7 @@ function create() {
       }
     });
 
+    // Fin des collisions
     this.matter.world.on('collisionend', function (event) {
       var pairs = event.pairs;
       for (var i = 0; i < pairs.length; i++){
@@ -653,10 +656,10 @@ function update(time, delta) {
     // Z - KILLER
     for (var a = 0; a < zArray.length; a++){
       if (zArray[a].data.values.life <= 0 && zArray[a].data.values.isAlive == true) {
+        zArray[a].data.values.isAlive = false;
         zArray[a].anims.play('zdie', true);
         zArray[a].on('animationcomplete', animComplete, self);
         zArray[a].setVelocityX(0);
-        zArray[a].data.values.isAlive = false;
       }
     }
     // Z - AI
@@ -809,6 +812,9 @@ function animComplete(animation, frame, e){
     e.data.values.isAttacking = false;
     e.anims.play('zwalking');
     this.character.data.values.life += - e.data.values.strength;
+  }
+  if(animation.key === 'zhited'){
+    e.anims.play('zwalking', true);
   }
 }
 
