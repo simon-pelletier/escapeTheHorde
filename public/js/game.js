@@ -441,10 +441,12 @@ function create() {
 
   // JUMP (space)
   this.input.keyboard.on('keydown_SPACE', function (event) {
-    self.character.setVelocityY( - jumpForce);
-    isNotJumping = false;
-    self.character.anims.play('jumping', true);
-    self.character.on('animationcomplete', animComplete, this);
+    if (isNotJumping == true) {
+      self.character.setVelocityY( - jumpForce);
+      isNotJumping = false;
+      self.character.anims.play('jumping', true);
+      self.character.on('animationcomplete', animComplete, this);
+    }
   });
 
   // POINTER MOVE
@@ -629,31 +631,6 @@ function create() {
       }
     }
 
-      /*var pairs = event.pairs;
-      for (var i = 0; i < pairs.length; i++){
-        var bodyA = pairs[i].bodyA;
-        var bodyB = pairs[i].bodyB;
-        if (pairs[i].isSensor) {
-          var zombieHiter;
-          var playerBody;
-          if (bodyB.isSensor){
-            zombieHiter = bodyB;
-            playerBody = bodyA;
-          }
-          else if (bodyA.isSensor){
-            zombieHiter = bodyA;
-            playerBody = bodyB;
-          }
-          if (zombieHiter.label === 'right' || zombieHiter.label === 'left'){
-            //clearInterval(intervalAttacking);
-            if (zombieHiter.gameObject.data) {
-              zombieHiter.gameObject.data.values.isAttacking = false;
-              zombieHiter.gameObject.anims.play('zwalking');
-            }
-
-          }
-        }
-      }*/
   });
 
   // RESIZE
