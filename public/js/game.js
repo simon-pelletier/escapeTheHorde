@@ -38,6 +38,8 @@ var zArray = [];
 var gameStarted = false;
 var textInfo;
 var iZ = 0;
+var bulletId = 0;
+var bulletParticlesArray = [];
 
 // VARIABLES KEY BIND
 var keyLeft;
@@ -480,6 +482,8 @@ function create() {
   // POINTER CLIC
   this.input.on('pointerup', function (pointer) {
     if (self.character) {
+      var particles = self.add.particles('fog');
+
       var BetweenPoints = Phaser.Math.Angle.BetweenPoints;
       var velocity = new Phaser.Math.Vector2();
       var velocityFromRotation = this.physics.velocityFromRotation;
@@ -506,13 +510,30 @@ function create() {
       bullet.setPosition(self.character.x, self.character.y - 10);
       bullet.setVelocity(velocity.x, velocity.y);
       bullet.setData({
-        id: 0002,
+        id: bulletId,
         shooter: self.character.data.values.id
       });
       bullet.setCollisionCategory(catBullet);
       bullet.setCollidesWith([ catZ ]);
+      particles.createEmitter({
+        //frame: 'yellow_ball',
+        speed: 50,
+        quantity: 1,
+        lifespan: 300,
+        gravity: { x: 0, y: 200 },
+        scale: { start: 0.01, end: 0.001 },
+        follow: bullet,
+        label: "bulletParticles"
+      });
+      particles.setData({
+        id: bulletId
+      });
+      bulletParticlesArray.push(particles);
+      bulletId++;
     }
+    //console.log(particles.data.values.id);
     setTimeout(function() {
+      particles.destroy();
       bullet.destroy();
     }, 1000);
     pistolShot.play();
@@ -559,6 +580,11 @@ function create() {
         }
       }
       if (bodyB.label === 'bulletBody') {
+        var idBulllet = bodyB.gameObject.data.values.id;
+        for (var i = 0; i < bulletParticlesArray.length; i++){
+          bulletParticlesArray[i].destroy();
+        }
+
         bodyB.gameObject.destroy();
       } else if (bodyA.label === 'bulletBody'){
         bodyA.gameObject.destroy();
