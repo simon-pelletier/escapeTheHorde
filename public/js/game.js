@@ -3,7 +3,7 @@ var speed = 1;
 var jumpForce = 6;
 var worldLength = 3000;
 var gravityG = 1;
-var zombiesPop = 5;
+var zombiesPop = 10;
 
 var devMod = true;
 
@@ -346,7 +346,7 @@ function create() {
           clientIsMaster = true;
         }
         var Bodies = Phaser.Physics.Matter.Matter.Bodies;
-        var rect = Bodies.rectangle(0, 0, 40, 100);
+        var rect = Bodies.rectangle(0, 0, 40, 100, { label: "playerBody" });
         weaponCurrentPlayer = self.add.image(200, 600, 'weapon01', null, { isStatic: true });
         weaponCurrentPlayer.setDepth(1);
         weaponCurrentPlayer.setOrigin(0.3, 0.5);
@@ -525,75 +525,111 @@ function create() {
       var bodyA = pairs[i].bodyA;
       var bodyB = pairs[i].bodyB;
 
-        // Si on a à faire au collider zombie
-        if (bodyA.label === 'zombieBody' || bodyA.label === 'zombieHead') {
-          //console.log(bodyB.gameObject.data.values.id);
-          //console.log(clientPlayer.data.score);
-          //console.log(bodyA.gameObject.data.values.life);
-          // Si la vie est au dessus de zero
-          if (bodyA.gameObject.data.values.life > 0) {
-            // Si c'est dans la tête
-            if (bodyA.label === 'zombieHead') {
-              self.character.data.values.score += 10;
-              //console.log(self.character.data.score);
-              bodyA.gameObject.data.values.life = 0;
-              bodyA.gameObject.data.values.toDestroy = true;
-              //bodyA.gameObject.parent.isSensor();
-              //console.log(bodyA.gameObject);
-              bodyA.gameObject.body.destroy();
-
-            // Si c'est dans le corps
-          } else if ((bodyA.label === 'zombieBody')){
-              bodyA.gameObject.data.values.life += -20;
-              if (bodyA.gameObject.data.values.life > 0) {
-                self.character.data.values.score += 1;
-                bodyA.gameObject.anims.play('zhited');
-                bodyA.gameObject.on('animationcomplete', animComplete, self);
-                /*setTimeout(function() {
-                  bodyA.gameObject.anims.play('zwalking');
-                }, 300);*/
-              } else {
-                self.character.data.values.score += 1;
-                bodyA.gameObject.data.values.life = 0;
-                bodyA.gameObject.data.values.toDestroy = true;
-                bodyA.gameObject.body.destroy();
-              }
-            }
-          } else if (bodyA.gameObject.data.values.toDestroy === false){
-          }
-          // Détruit la bullet
-          bodyB.gameObject.destroy();
+      if ((bodyA.label === 'zombieBody' || bodyA.label === 'zombieHead') && bodyB.label === "bulletBody"){
+        if (bodyA.label === 'zombieBody'){
+          self.character.data.values.score += 1;
+          bodyA.gameObject.data.values.life += -20;
+        } else if (bodyA.label === 'zombieHead'){
+          self.character.data.values.score += 10;
+          bodyA.gameObject.data.values.life += -100;
         }
-
-        // Si on a à faire au sensor right ou left
-        if (bodyA.label === 'right' || bodyA.label === 'left' || bodyB.label === 'right' || bodyB.label === 'left') {
-          var zombieHiter;
-          var playerBody;
-          if (bodyB.isSensor){
-            zombieHiter = bodyB;
-            playerBody = bodyA;
-          }
-          else if (bodyA.isSensor){
-            zombieHiter = bodyA;
-            playerBody = bodyB;
-          }
-          if (zombieHiter.label === 'right' || zombieHiter.label === 'left' && zombieHiter.gameObject.data.values.isAttacking == false){
-            zombieHiter.gameObject.data.values.isAttacking = true;
-            zombieHiter.gameObject.anims.play('zattack');
-            zombieHiter.gameObject.on('animationcomplete', animComplete, self);
-            /*intervalAttacking = setInterval(function(){
-              //console.log(playerBody.gameObject.data.values.life);
-              playerBody.gameObject.data.values.life += - zombieHiter.gameObject.data.values.strength;
-            }, 1300);*/
-          }
+        if (bodyA.gameObject.data.values.life <= 0) {
+          bodyA.gameObject.data.values.toDestroy = true;
+          bodyA.gameObject.body.destroy();
+        } else {
+          bodyA.gameObject.anims.play('zhited');
+          bodyA.gameObject.on('animationcomplete', animComplete, self);
         }
-
+      } else if ((bodyB.label === 'zombieBody' || bodyB.label === 'zombieHead') && bodyA.label === "bulletBody"){
+        if (bodyB.label === 'zombieBody'){
+          self.character.data.values.score += 1;
+          bodyB.gameObject.data.values.life += -20;
+        } else if (bodyB.label === 'zombieHead'){
+          self.character.data.values.score += 10;
+          bodyB.gameObject.data.values.life += -100;
+        }
+        if (bodyB.gameObject.data.values.life <= 0) {
+          bodyB.gameObject.data.values.toDestroy = true;
+          bodyB.gameObject.body.destroy();
+        } else {
+          bodyB.gameObject.anims.play('zhited');
+          bodyB.gameObject.on('animationcomplete', animComplete, self);
+        }
       }
-    });
+      if (bodyB.label === 'bulletBody') {
+        bodyB.gameObject.destroy();
+      } else if (bodyA.label === 'bulletBody'){
+        bodyA.gameObject.destroy();
+      }
 
-    // Fin des collisions
-    this.matter.world.on('collisionend', function (event) {
-      var pairs = event.pairs;
+      if (((bodyA.label === 'right' || bodyA.label === 'left') && bodyB.label === 'playerBody') || ((bodyB.label === 'right' || bodyB.label === 'left') && bodyA.label === 'playerBody')){
+        var zombieHiter;
+        var playerBody;
+        if (bodyB.isSensor){
+          zombieHiter = bodyB;
+          playerBody = bodyA;
+        }
+        else if (bodyA.isSensor){
+          zombieHiter = bodyA;
+          playerBody = bodyB;
+        }
+        if (zombieHiter.label === 'right' || zombieHiter.label === 'left' && zombieHiter.gameObject.data.values.isAttacking == false){
+          zombieHiter.gameObject.data.values.isAttacking = true;
+          zombieHiter.gameObject.anims.play('zattack');
+        }
+      }
+
+    }
+  });
+
+  this.matter.world.on('collisionactive', function (event) {
+    var pairs = event.pairs;
+    for (var i = 0; i < pairs.length; i++){
+      var bodyA = pairs[i].bodyA;
+      var bodyB = pairs[i].bodyB;
+      if (((bodyA.label === 'right' || bodyA.label === 'left') && bodyB.label === 'playerBody') || ((bodyB.label === 'right' || bodyB.label === 'left') && bodyA.label === 'playerBody')){
+        var zombieHiter;
+        var playerBody;
+        if (bodyB.isSensor){
+          zombieHiter = bodyB;
+          playerBody = bodyA;
+        }
+        else if (bodyA.isSensor){
+          zombieHiter = bodyA;
+          playerBody = bodyB;
+        }
+        if (zombieHiter.label === 'right' || zombieHiter.label === 'left' && zombieHiter.gameObject.data.values.isAttacking == false){
+          playerBody.gameObject.data.values.life += -0.5;
+        }
+      }
+    }
+  });
+
+  // Fin des collisions
+  this.matter.world.on('collisionend', function (event) {
+    var pairs = event.pairs;
+    for (var i = 0; i < pairs.length; i++){
+      var bodyA = pairs[i].bodyA;
+      var bodyB = pairs[i].bodyB;
+      if (((bodyA.label === 'right' || bodyA.label === 'left') && bodyB.label === 'playerBody') || ((bodyB.label === 'right' || bodyB.label === 'left') && bodyA.label === 'playerBody')){
+        var zombieHiter;
+        var playerBody;
+        if (bodyB.isSensor){
+          zombieHiter = bodyB;
+          playerBody = bodyA;
+        }
+        else if (bodyA.isSensor){
+          zombieHiter = bodyA;
+          playerBody = bodyB;
+        }
+        if (zombieHiter.label === 'right' || zombieHiter.label === 'left' && zombieHiter.gameObject.data.values.isAttacking == true){
+          zombieHiter.gameObject.data.values.isAttacking = false;
+          zombieHiter.gameObject.anims.play('zwalking');
+        }
+      }
+    }
+
+      /*var pairs = event.pairs;
       for (var i = 0; i < pairs.length; i++){
         var bodyA = pairs[i].bodyA;
         var bodyB = pairs[i].bodyB;
@@ -610,12 +646,15 @@ function create() {
           }
           if (zombieHiter.label === 'right' || zombieHiter.label === 'left'){
             //clearInterval(intervalAttacking);
-            zombieHiter.gameObject.data.values.isAttacking = false;
-            zombieHiter.gameObject.anims.play('zwalking');
+            if (zombieHiter.gameObject.data) {
+              zombieHiter.gameObject.data.values.isAttacking = false;
+              zombieHiter.gameObject.anims.play('zwalking');
+            }
+
           }
         }
-      }
-    });
+      }*/
+  });
 
   // RESIZE
   resizeWindow();
@@ -653,18 +692,22 @@ function update(time, delta) {
 
   // DEPLACEMENTS ZOMBIES
   if (this.character) {
-    // Z - KILLER
-    for (var a = 0; a < zArray.length; a++){
-      if (zArray[a].data.values.life <= 0 && zArray[a].data.values.isAlive == true) {
-        zArray[a].data.values.isAlive = false;
-        zArray[a].anims.play('zdie', true);
-        zArray[a].on('animationcomplete', animComplete, self);
-        zArray[a].setVelocityX(0);
-      }
-    }
+
+
     // Z - AI
     zombiesNumber = zArray.length;
     for (var z = 0; z < zArray.length; z++){
+
+      // Z - KILLER
+      if (zArray[z].data.values.life <= 0 && zArray[z].data.values.isAlive == true) {
+        zArray[z].data.values.isAlive = false;
+        zArray[z].anims.play('zdie', false);
+        //console.log('un mort');
+        zArray[z].on('animationcomplete', animComplete, self);
+        zArray[z].setVelocityX(0);
+      }
+
+
         var horizontalRange = (zArray[z].x ) - this.character.x;
         var verticalRange = (zArray[z].y ) - this.character.y;
         if (zArray[z].data.values.isAlive == true && zArray[z].data.values.isAttacking == false) {
@@ -685,7 +728,7 @@ function update(time, delta) {
               zArray[z].flipX = false;
             }
           } else {
-            isAttacking = false;
+            //zArray[z].data.values.isAttacking = false;
             if ( zArray[z].data.values.team % 2 == 0 ) {
               zArray[z].setVelocityX( 1 * speed);
               zArray[z].flipX = false;
@@ -791,7 +834,7 @@ function update(time, delta) {
         '\nPlayer Name: ' + clientPlayer.data.values.name +
         '\nPlayer Score: ' + clientPlayer.data.values.score +
         '\nPlayer lvl: ' + clientPlayer.data.values.level +
-        '\nPlayer Life: ' + clientPlayer.data.values.life +
+        '\nPlayer Life: ' + Math.round(clientPlayer.data.values.life) +
         '\nWorld Length: ' + worldLength
       );
         timeText.x = slideCamera +100;
@@ -806,8 +849,19 @@ function animComplete(animation, frame, e){
     isNotJumping = true;
   }
   if(animation.key === 'zdie'){
-    destroyZombie(e.data.values.id);
+
+    if (e.data) {
+      //destroyZombie(e.data.values.id);
+      if (e.data.values.destroyed === false) {
+        //console.log(e.data.values.isAlive);
+        e.data.values.destroyed = true;
+        destroyZombie(e.data.values.id);
+        //console.log(e.data.values.id);
+      }
+    }
+
   }
+
   if(animation.key === 'zattack'){
     e.data.values.isAttacking = false;
     e.anims.play('zwalking');
@@ -837,7 +891,7 @@ function zGeneration(self){
      oneZ.setExistingBody(compoundBody);
      oneZ.setCollisionCategory(catZ);
      oneZ.setIgnoreGravity(true);
-     /*oneZ.setFriction(5);
+     oneZ.setFriction(1);/*
      oneZ.setFrictionStatic(5);
      oneZ.setMass(100);*/
      /*
@@ -854,7 +908,7 @@ function zGeneration(self){
        var distribution = 1;
      }
      if (distribution == 0) {
-       oneZ.setPosition(worldLength, 600);
+       oneZ.setPosition(worldLength, 620);
      } else {
        oneZ.setPosition(0, 620);
      }
@@ -871,9 +925,10 @@ function zGeneration(self){
        team: randomNumber(1, 2),
        isAlive: true,
        isAttacking: false,
-       toDestroy: false
+       toDestroy: false,
+       destroyed: false
      });
-     console.log(oneZ);
+     //console.log(oneZ);
      this.zArray.push(oneZ);
       iZ++;
       if (iZ < zombiesPop) { this.zGeneration(self); }
