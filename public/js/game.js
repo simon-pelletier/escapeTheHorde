@@ -517,12 +517,13 @@ function create() {
       bullet.setCollidesWith([ catZ ]);
       particles.createEmitter({
         //frame: 'yellow_ball',
-        speed: 50,
+        speed: 20,
         quantity: 1,
         lifespan: 300,
         gravity: { x: 0, y: 200 },
-        scale: { start: 0.01, end: 0.001 },
+        scale: { start: 0.005, end: 0.001 },
         follow: bullet,
+        frequency: 0,
         label: "bulletParticles"
       });
       particles.setData({
