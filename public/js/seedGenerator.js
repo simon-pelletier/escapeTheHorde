@@ -21,35 +21,5 @@ function seedCreation(){
   seed.push(mapLevel);
 
   var seedObj = Object.assign({}, seed);
-  //console.log(seedObj);
 
-
-//LVL
-  //MAPLEVEL
-  //
-//MAP
-  //GROUP (trees - platform)
-  //POSITIONX
-  //POSITIONY
-  //NAME (tree01 - ground01)
-
-
-
-  // TREES GENERATION
-  /*var treeNumbers = randomNumber(10, 50);
-  for (var i = 0; i < 50; i++){
-    var treePositionX = randomNumber(0, 5000);
-    trees.create(treePositionX, 580, 'tree01');
-  }
-  //GROUND GENERATION
-  for (var i = 0; i < baseGroundLength; i++){
-    platforms.create(i * blocWidth, 700, 'ground01');
-  }
-  //PLATFORM GENERATION
-  for (var i = 20; i < 30; i++){
-    platforms.create(i * blocWidth, 300, 'ground01');
-  }
-  for (var i = 10; i < 20; i++){
-    platforms.create(i * blocWidth, 500, 'ground01');
-  }*/
 }

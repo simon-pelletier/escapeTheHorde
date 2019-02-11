@@ -71,21 +71,20 @@ var lookToTheRight = true;
 var playersNumber = 0;
 var clientPlayer;
 var weaponCurrentPlayer;
-/*var clientPlayerLife;
-var clientPlayerName;*/
 var clientIsMaster = false;
 
 // PRELOAD /////////////////////////////////////////////////////////////////////
 function preload() {
   // RESIZE PRELOAD
   resizeWindow();
+
   // Text info chargement
   textInfo = this.add.text(600, 300, 'Loading...', { font: '25px Courier', fill: '#85bb13' });
-  // JSON
-  //this.load.json('jsonData', 'assets/data/map.json');
+
   // SPRITE
   this.load.spritesheet('character', 'assets/player.png', { frameWidth: 90, frameHeight: 100 });
   this.load.spritesheet('zombie01', 'assets/Z.png', { frameWidth: 90, frameHeight: 100 });
+
   // IMAGE
   this.load.image('ground300', 'assets/ground300.png');
   this.load.image('platform01', 'assets/platform01.png');
@@ -113,6 +112,7 @@ function preload() {
   this.load.image('megaphone01', 'assets/megaphone01.png');
   this.load.image('firebase01', 'assets/firebase01.png');
   this.load.image('weapon01', 'assets/weapon01.png');
+
   // AUDIO
   this.load.audio('theme', ['assets/audio/theme.mp3']);
   this.load.audio('walk', ['assets/audio/walk.wav']);
@@ -353,16 +353,13 @@ function create() {
         weaponCurrentPlayer.setDepth(1);
         weaponCurrentPlayer.setOrigin(0.3, 0.5);
         var compoundBodyPlayer = Phaser.Physics.Matter.Matter.Body.create({
-          parts: [ rect ]/*,
-          inertia: Infinity*/
+          parts: [ rect ]
         });
 
         self.character = self.matter.add.sprite(players[id].x, players[id].y, 'character');
         self.character.setExistingBody(compoundBodyPlayer);
         self.character.setPosition(300, 500);
         self.character.setFixedRotation();
-        /*self.character.setMass(0.1);
-        self.character.setFriction(0.01);*/
 
         self.character.setCollisionCategory(catPlayer);
         self.character.setData({
@@ -435,8 +432,6 @@ function create() {
       walkingSound.stop();
     }
     if (event.key == 'Shift') {
-      // PROBLEME - son //
-      //walkingSound.play();
       runningSound.stop();
     }
   });
@@ -456,7 +451,6 @@ function create() {
     if (self.character) {
       var BetweenPoints = Phaser.Math.Angle.BetweenPoints;
       var velocity = new Phaser.Math.Vector2();
-      //var velocityFromRotation = this.physics.velocityFromRotation;
       var slide = self.input.mousePointer.worldX - pointer.x;
       var slideY = self.input.mousePointer.worldY - pointer.y;
       var characterPoint = new Phaser.Geom.Point(self.character.x - slide, self.character.y - slideY);
@@ -464,7 +458,6 @@ function create() {
       if (angle > -0.5 || angle < -2.5) {
         weaponCurrentPlayer.rotation = angle;
       }
-      //console.log(angle);
       var slide = self.input.mousePointer.worldX - pointer.x;
       var slideY = self.input.mousePointer.worldY - pointer.y;
       if (self.character.x > (pointer.x + slide)){
@@ -516,7 +509,6 @@ function create() {
       bullet.setCollisionCategory(catBullet);
       bullet.setCollidesWith([ catZ ]);
       particles.createEmitter({
-        //frame: 'yellow_ball',
         speed: 20,
         quantity: 1,
         lifespan: 300,
@@ -532,7 +524,7 @@ function create() {
       bulletParticlesArray.push(particles);
       bulletId++;
     }
-    //console.log(particles.data.values.id);
+
     setTimeout(function() {
       particles.destroy();
       bullet.destroy();
@@ -677,7 +669,6 @@ function update(time, delta) {
   if (this.character) {
 
     if (this.character.data.values.life <= 0) {
-      //game.scene.restart();
       console.log('GAME OVER');
     }
     if (!gameStarted) {
@@ -706,7 +697,6 @@ function update(time, delta) {
       if (zArray[z].data.values.life <= 0 && zArray[z].data.values.isAlive == true) {
         zArray[z].data.values.isAlive = false;
         zArray[z].anims.play('zdie', false);
-        //console.log('un mort');
         zArray[z].on('animationcomplete', animComplete, self);
         zArray[z].setVelocityX(0);
       }
@@ -732,7 +722,6 @@ function update(time, delta) {
               zArray[z].flipX = false;
             }
           } else {
-            //zArray[z].data.values.isAttacking = false;
             if ( zArray[z].data.values.team % 2 == 0 ) {
               zArray[z].setVelocityX( 1 * speed);
               zArray[z].flipX = false;
@@ -788,8 +777,6 @@ function update(time, delta) {
       }
     // IDLE
     } else {
-      //weaponCurrentPlayer.x = this.character.x - 20;
-      //weaponCurrentPlayer.y = this.character.y - 10;
       this.character.setVelocityX(0);
       if (isNotJumping) {
         this.character.anims.play('idle', true);
@@ -811,26 +798,10 @@ function update(time, delta) {
     // Envoi des mouvements joueur (self) (SOCKET)
     this.socket.emit('playerMovement', { x: this.character.x, y: this.character.y - 170, rotation: this.character.rotation });
 
-    // (SOCKET)
-    // emit player movement
-    /*var x = this.ship.x;
-    var y = this.ship.y;
-    var r = this.ship.rotation;
-    if (this.ship.oldPosition && (x !== this.ship.oldPosition.x || y !== this.ship.oldPosition.y || r !== this.ship.oldPosition.rotation)) {
-      this.socket.emit('playerMovement', { x: this.ship.x, y: this.ship.y, rotation: this.ship.rotation });
-    }
-    // save old position data
-    this.ship.oldPosition = {
-      x: this.ship.x,
-      y: this.ship.y,
-      rotation: this.ship.rotation
-    };*/
-
     // INFOS DEV
     if (clientPlayer) {
       timeText.setText(
         'Time: ' + time.toFixed(0) +
-        //'\nDelta: ' + delta.toFixed(2) +
         '\nLevel: dev' +
         '\nPlayers Number: ' + playersNumber +
         '\nZombies Number: ' + zombiesNumber +
@@ -855,12 +826,9 @@ function animComplete(animation, frame, e){
   if(animation.key === 'zdie'){
 
     if (e.data) {
-      //destroyZombie(e.data.values.id);
       if (e.data.values.destroyed === false) {
-        //console.log(e.data.values.isAlive);
         e.data.values.destroyed = true;
         destroyZombie(e.data.values.id);
-        //console.log(e.data.values.id);
       }
     }
 
@@ -887,24 +855,14 @@ function zGeneration(self){
      var circleD = Bodies.circle(-15, 50, 5, { isSensor: true, label: 'left' });
      var compoundBody = Phaser.Physics.Matter.Matter.Body.create({
        parts: [ rect, circleA, circleB, circleC, circleD ],
-       label: 'zBodyCompound'/*,
-       inertia: Infinity*/
+       label: 'zBodyCompound'
      });
      var oneZ = self.matter.add.sprite(0, 0, 'zombie01', null);
      oneZ.play('zwalking');
      oneZ.setExistingBody(compoundBody);
      oneZ.setCollisionCategory(catZ);
      oneZ.setIgnoreGravity(true);
-     oneZ.setFriction(1);/*
-     oneZ.setFrictionStatic(5);
-     oneZ.setMass(100);*/
-     /*
-     oneZ.frictionStatic = 1;
-     oneZ.friction = 1;
-     oneZ.mass = 200;
-     oneZ.frictionAir = 0.001;
-     oneZ.restitution = 0;
-     */
+     oneZ.setFriction(1);
 
      if (!devMod) {
        var distribution = randomNumber(0,3);
@@ -917,7 +875,7 @@ function zGeneration(self){
        oneZ.setPosition(0, 620);
      }
      oneZ.setFixedRotation();
-    // oneZ.setMass(100);
+
      oneZ.setCollidesWith([ catGround, catBullet, catPlayer ]);
      oneZ.setData({
        id: iZ,
@@ -932,7 +890,7 @@ function zGeneration(self){
        toDestroy: false,
        destroyed: false
      });
-     //console.log(oneZ);
+
      this.zArray.push(oneZ);
       iZ++;
       if (iZ < zombiesPop) { this.zGeneration(self); }
